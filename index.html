@@ -521,6 +521,48 @@
   .mode-opt .t{font-weight:600; font-size:13.5px; margin-bottom:3px;}
   .mode-opt .d{font-size:11.5px; color:var(--text-faint);}
 
+  /* Article panel */
+  .article-card{
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:14px;
+    padding:32px 30px;
+    box-shadow:var(--shadow);
+    margin-bottom:14px;
+    position:relative;
+  }
+  .article-card::after{
+    content:"";
+    position:absolute;
+    top:14px; bottom:14px; left:-6px;
+    width:2px;
+    background:repeating-linear-gradient(180deg, var(--gold) 0 6px, transparent 6px 12px);
+    opacity:0.45;
+    border-radius:2px;
+  }
+  .article-title{
+    font-family:'Source Serif 4',serif;
+    font-weight:700;
+    font-size:23px;
+    line-height:1.3;
+    margin-bottom:16px;
+    letter-spacing:-0.01em;
+  }
+  .article-body{
+    font-family:'Source Serif 4',serif;
+    font-size:16.5px;
+    line-height:1.8;
+  }
+  .article-body p{margin:0 0 15px;}
+  .article-body p:last-child{margin-bottom:0;}
+  .article-body mark{
+    background:rgba(201,163,92,0.28);
+    color:inherit;
+    border-radius:3px;
+    padding:0 2px;
+    font-weight:600;
+  }
+
   /* Stats panel */
   .stat-grid{
     display:grid;
@@ -617,6 +659,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="quiz">Quiz</button>
     <button class="tab" data-tab="manage">Words <span class="count" id="wordCount">0</span></button>
+    <button class="tab" data-tab="article">Article</button>
     <button class="tab" data-tab="stats">Stats</button>
     <button class="tab" data-tab="setup">Setup</button>
   </div>
@@ -709,6 +752,55 @@
       <button class="btn btn-rust" id="clearAllBtn" style="padding:6px 12px; font-size:11.5px;">Clear all</button>
     </div>
     <div class="word-list" id="wordList"></div>
+  </div>
+
+  <!-- ARTICLE PANEL -->
+  <div class="panel" id="panel-article">
+
+    <div id="articleLocked" class="setup-card" style="display:none;">
+      <h2>Add a few words first</h2>
+      <p>Once you've got some words in your list, generate an editorial-style article that weaves them naturally into real prose.</p>
+    </div>
+
+    <div id="articleReady" style="display:none;">
+      <div class="setup-card" style="text-align:left; margin-bottom:20px;">
+        <h2 style="text-align:center;">Editorial practice</h2>
+        <p style="text-align:center;">Generates a short editorial-style article that naturally weaves in words from your list — good practice for seeing them used in real, sophisticated prose.</p>
+
+        <div class="sync-row" id="articleStatusRow"><span class="sync-dot" id="articleDot"></span><span id="articleStatus">Ready to generate your first article.</span></div>
+
+        <div style="margin:16px 0 6px;">
+          <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:8px;">Generate a new article every</label>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="text" id="articleIntervalHours" value="12" style="width:70px; text-align:center;">
+            <span style="font-size:13px; color:var(--text-dim);">hours</span>
+          </div>
+          <p style="font-size:12px; color:var(--text-faint); margin:8px 0 0; line-height:1.6;">The article is cached and reused across sessions and devices during that window, so you're not spending API calls regenerating one every visit.</p>
+        </div>
+
+        <button class="btn btn-gold" id="generateArticleBtn" style="width:100%; padding:13px; margin-top:16px;">Generate article</button>
+        <button class="btn btn-ghost" id="forceArticleBtn" style="width:100%; padding:8px; margin-top:8px; font-size:11.5px; display:none;">Generate anyway (uses extra API quota)</button>
+      </div>
+
+      <div id="articleLoading" class="setup-card" style="display:none;">
+        <h2>Writing your article&hellip;</h2>
+        <p>Composing a passage that works in words from your list.</p>
+      </div>
+
+      <div id="articleEmpty" class="empty-state">
+        <span class="glyph">&#9670;</span>
+        <p>No article yet — click <b style="color:var(--text-dim)">Generate article</b> above to create your first one.</p>
+      </div>
+
+      <div id="articleDisplay" style="display:none;">
+        <div class="article-card">
+          <div class="article-title" id="articleTitle">Title</div>
+          <div class="article-body" id="articleBody"></div>
+        </div>
+        <p id="articleMeta" style="font-size:12px; color:var(--text-faint); text-align:center; margin-top:-10px;"></p>
+      </div>
+    </div>
+
   </div>
 
   <!-- STATS PANEL -->
@@ -831,8 +923,9 @@ service cloud.firestore {
     words: [], stats: {}, session: null,
     best: { streak: 0, total: 0, correct: 0 },
     sentenceCache: {}, // { [wordId]: { sentence, generatedAt } }
-    settings: { sentenceRefreshDays: 5 },
+    settings: { sentenceRefreshDays: 5, articleIntervalHours: 12 },
     geminiKey: '', // synced copy of the Gemini API key, so you don't have to re-enter it per device
+    article: null, // { title, body, wordsUsed: [...], generatedAt }
     updatedAt: 0
   };
   let hfToken = '';
@@ -868,6 +961,16 @@ service cloud.firestore {
     if(h < 24) return `${h}h ago`;
     const d = Math.round(h/24);
     return `${d}d ago`;
+  }
+
+  function fmtCountdown(ms){
+    if(ms <= 0) return 'now';
+    const totalMin = Math.ceil(ms/60000);
+    const h = Math.floor(totalMin/60);
+    const m = totalMin % 60;
+    if(h === 0) return `${m}m`;
+    if(m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
   }
 
   function docRef(){
@@ -917,10 +1020,13 @@ service cloud.firestore {
     state.stats = data.stats || {};
     state.best = data.best || { streak:0, total:0, correct:0 };
     state.sentenceCache = data.sentenceCache || {};
-    state.settings = Object.assign({ sentenceRefreshDays: 5 }, data.settings || {});
+    state.settings = Object.assign({ sentenceRefreshDays: 5, articleIntervalHours: 12 }, data.settings || {});
+    state.article = data.article || null;
     state.updatedAt = data.updatedAt || Date.now();
     const refreshInput = document.getElementById('sentenceRefreshDays');
     if(refreshInput) refreshInput.value = state.settings.sentenceRefreshDays;
+    const articleIntervalInput = document.getElementById('articleIntervalHours');
+    if(articleIntervalInput) articleIntervalInput.value = state.settings.articleIntervalHours;
 
     if(data.geminiKey && data.geminiKey !== hfToken){
       state.geminiKey = data.geminiKey;
@@ -959,7 +1065,7 @@ service cloud.firestore {
         await docRef().set({
           words: state.words, stats: state.stats, best: state.best,
           sentenceCache: state.sentenceCache, geminiKey: state.geminiKey,
-          settings: state.settings, updatedAt: state.updatedAt
+          settings: state.settings, article: state.article, updatedAt: state.updatedAt
         });
         setSyncStatus(`Synced · just now`, 'ok');
         return true;
@@ -1042,14 +1148,17 @@ service cloud.firestore {
         state.stats = parsed.stats || {};
         state.best = parsed.best || { streak:0, total:0, correct:0 };
         state.sentenceCache = parsed.sentenceCache || {};
-        state.settings = Object.assign({ sentenceRefreshDays: 5 }, parsed.settings || {});
+        state.settings = Object.assign({ sentenceRefreshDays: 5, articleIntervalHours: 12 }, parsed.settings || {});
         state.geminiKey = parsed.geminiKey || '';
+        state.article = parsed.article || null;
         state.updatedAt = parsed.updatedAt || 0;
       }
     }catch(e){ console.error('Load failed:', e); }
 
     const refreshInput = document.getElementById('sentenceRefreshDays');
     if(refreshInput) refreshInput.value = state.settings.sentenceRefreshDays;
+    const articleIntervalInput = document.getElementById('articleIntervalHours');
+    if(articleIntervalInput) articleIntervalInput.value = state.settings.articleIntervalHours;
 
     const { token, fromLS, fromIDB } = await retrieveToken();
     if(token){
@@ -1073,7 +1182,7 @@ service cloud.firestore {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           words: state.words, stats: state.stats, best: state.best,
           sentenceCache: state.sentenceCache, geminiKey: state.geminiKey,
-          settings: state.settings, updatedAt: state.updatedAt
+          settings: state.settings, article: state.article, updatedAt: state.updatedAt
         }));
       }catch(e){
         console.error('Save failed:', e);
@@ -1432,6 +1541,189 @@ service cloud.firestore {
     if(sentenceCardWord) loadSentenceFor(sentenceCardWord, sentenceCardMeaning, true);
   });
 
+  // ---------- Article ----------
+  const MIN_WORDS_FOR_ARTICLE = 5;
+  const MAX_ARTICLE_WORDS = 24;
+
+  function articleIntervalMs(){
+    const h = Number(state.settings.articleIntervalHours);
+    return (isFinite(h) && h > 0) ? h * 3600000 : 0;
+  }
+
+  function articleReadyAt(){
+    if(!state.article) return 0;
+    return state.article.generatedAt + articleIntervalMs();
+  }
+
+  function pickArticleWords(){
+    if(state.words.length <= MAX_ARTICLE_WORDS) return state.words.slice();
+    // Prioritize weaker words (lower quiz accuracy) so the article doubles as reinforcement,
+    // then fill the rest randomly for variety between articles.
+    const withAcc = state.words.map(w=>{
+      const s = state.stats[idFor(w.word, w.meaning)];
+      const acc = (s && s.total > 0) ? s.correct / s.total : 0.5;
+      return { w, acc };
+    });
+    withAcc.sort((a,b)=> a.acc - b.acc);
+    const weakCount = Math.ceil(MAX_ARTICLE_WORDS * 0.6);
+    const weakest = withAcc.slice(0, weakCount).map(x=>x.w);
+    const rest = withAcc.slice(weakCount).map(x=>x.w);
+    for(let i = rest.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i+1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    return weakest.concat(rest.slice(0, MAX_ARTICLE_WORDS - weakest.length));
+  }
+
+  function buildArticlePrompt(words){
+    const wordList = words.map(w => `${w.word} (${w.meaning})`).join(', ');
+    return `You are writing a short editorial-style opinion piece in polished, sophisticated English — the register of a serious opinion column in a publication like The Economist or The Atlantic.
+
+Naturally weave in as many of the following vocabulary words as you reasonably can, each used in a way that matches its given meaning and fits organically into the prose. Do not force awkward sentences just to use a word, and do not define or list the words directly:
+${wordList}
+
+Pick a specific, substantive theme (current affairs, society, technology, culture, science, etc. — something concrete and interesting, not generic). Write 4-6 paragraphs, 350-500 words total, with a consistent editorial voice and a real point of view.
+
+Respond with ONLY valid JSON in exactly this shape, no markdown fences, no commentary:
+{
+  "title": "a short, punchy editorial-style headline",
+  "body": "the full article as a single string, with \\n\\n between paragraphs",
+  "wordsUsed": ["word1", "word2"]
+}
+Only include a word in "wordsUsed" if you actually used it somewhere in the body.`;
+  }
+
+  function highlightWords(text, words){
+    const html = escapeHtml(text);
+    const clean = (words || []).map(w => String(w).trim()).filter(Boolean);
+    if(clean.length === 0) return html;
+    const escapedWords = clean
+      .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .sort((a,b) => b.length - a.length);
+    const re = new RegExp(`\\b(${escapedWords.join('|')})\\w*`, 'gi');
+    return html.replace(re, m => `<mark>${m}</mark>`);
+  }
+
+  function setArticleUiBusy(busy){
+    document.getElementById('generateArticleBtn').disabled = busy;
+    document.getElementById('forceArticleBtn').disabled = busy;
+    document.getElementById('articleLoading').style.display = busy ? 'block' : 'none';
+  }
+
+  async function generateArticle(force){
+    if(!hfToken){
+      showToast('Add your Gemini API key in the Setup tab first');
+      return;
+    }
+    if(state.words.length === 0){
+      showToast('Add some words first');
+      return;
+    }
+    const now = Date.now();
+    if(!force && state.article && now < articleReadyAt()){
+      showToast(`Your next article unlocks in ${fmtCountdown(articleReadyAt() - now)}`);
+      return;
+    }
+
+    setArticleUiBusy(true);
+    const words = pickArticleWords();
+    const prompt = buildArticlePrompt(words);
+    const result = await callGemini(prompt, { jsonMode: true, temperature: 1.1 });
+    setArticleUiBusy(false);
+
+    if(!result.ok){
+      showToast(`Could not generate the article — ${explainError(result)}`);
+      renderArticlePanel();
+      return;
+    }
+    const data = result.data;
+    if(!data || !data.title || !data.body){
+      showToast('Response was missing expected fields. Try again.');
+      renderArticlePanel();
+      return;
+    }
+
+    state.article = {
+      title: data.title,
+      body: data.body,
+      wordsUsed: Array.isArray(data.wordsUsed) && data.wordsUsed.length ? data.wordsUsed : words.map(w => w.word),
+      generatedAt: now
+    };
+    save();
+    renderArticlePanel();
+  }
+
+  document.getElementById('generateArticleBtn').addEventListener('click', ()=> generateArticle(false));
+  document.getElementById('forceArticleBtn').addEventListener('click', ()=> generateArticle(true));
+
+  document.getElementById('articleIntervalHours').addEventListener('change', e=>{
+    const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+    e.target.value = val;
+    state.settings.articleIntervalHours = val;
+    save();
+    renderArticlePanel();
+    showToast(val === 0 ? 'A new article can be generated any time' : `New articles unlock every ${val} hour${val===1?'':'s'}`);
+  });
+
+  function renderArticlePanel(){
+    const locked = document.getElementById('articleLocked');
+    const ready = document.getElementById('articleReady');
+    if(state.words.length < MIN_WORDS_FOR_ARTICLE){
+      locked.style.display = 'block';
+      ready.style.display = 'none';
+      return;
+    }
+    locked.style.display = 'none';
+    ready.style.display = 'block';
+
+    const now = Date.now();
+    const readyAt = articleReadyAt();
+    const onCooldown = !!(state.article && now < readyAt);
+    const genBtn = document.getElementById('generateArticleBtn');
+    const forceBtn = document.getElementById('forceArticleBtn');
+    const statusEl = document.getElementById('articleStatus');
+    const dot = document.getElementById('articleDot');
+
+    genBtn.disabled = onCooldown;
+    genBtn.style.display = onCooldown ? 'none' : 'block';
+    forceBtn.style.display = onCooldown ? 'block' : 'none';
+
+    dot.classList.remove('ok','error','pulse');
+    if(onCooldown){
+      dot.classList.add('pulse');
+      statusEl.textContent = `Next new article available in ${fmtCountdown(readyAt - now)}.`;
+    } else if(state.article){
+      dot.classList.add('ok');
+      statusEl.textContent = `Ready to generate a new article (last one was ${fmtAgo(state.article.generatedAt)}).`;
+    } else {
+      statusEl.textContent = 'Generate your first article whenever you\'re ready.';
+    }
+
+    const empty = document.getElementById('articleEmpty');
+    const display = document.getElementById('articleDisplay');
+    if(!state.article){
+      empty.style.display = 'block';
+      display.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    display.style.display = 'block';
+
+    document.getElementById('articleTitle').textContent = state.article.title;
+    const paragraphs = state.article.body
+      .split(/\n\n+/)
+      .map(p => `<p>${highlightWords(p, state.article.wordsUsed)}</p>`)
+      .join('');
+    document.getElementById('articleBody').innerHTML = paragraphs;
+    document.getElementById('articleMeta').textContent =
+      `Generated ${fmtAgo(state.article.generatedAt)} · ${state.article.wordsUsed.length} of your words used`;
+  }
+
+  // Keep the countdown line feeling alive without a full re-render every time.
+  setInterval(()=>{
+    if(document.getElementById('panel-article').classList.contains('active')) renderArticlePanel();
+  }, 30000);
+
   function nextCard(){
     sentenceRequestId++;
     const s = state.session;
@@ -1466,6 +1758,7 @@ service cloud.firestore {
       document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
       if(tab.dataset.tab === 'quiz') resetQuizView();
       if(tab.dataset.tab === 'stats') renderStats();
+      if(tab.dataset.tab === 'article') renderArticlePanel();
     });
   });
 
@@ -1656,6 +1949,7 @@ service cloud.firestore {
     renderWordList();
     resetQuizView();
     renderStats();
+    renderArticlePanel();
   }
 
   function renderWordList(){
