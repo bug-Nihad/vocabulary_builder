@@ -521,132 +521,6 @@
   .mode-opt .t{font-weight:600; font-size:13.5px; margin-bottom:3px;}
   .mode-opt .d{font-size:11.5px; color:var(--text-faint);}
 
-  /* Comprehension panel */
-  .comp-meta{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:16px;
-    font-family:'JetBrains Mono',monospace;
-    font-size:11px;
-    letter-spacing:0.05em;
-    text-transform:uppercase;
-    color:var(--text-faint);
-  }
-  .comp-passage-card{
-    background:var(--paper);
-    color:var(--ink);
-    border-radius:14px;
-    padding:30px 28px;
-    box-shadow:var(--shadow);
-    margin-bottom:24px;
-    position:relative;
-  }
-  .comp-passage-card::after{
-    content:"";
-    position:absolute;
-    top:14px; bottom:14px; left:-6px;
-    width:2px;
-    background:repeating-linear-gradient(180deg, var(--gold) 0 6px, transparent 6px 12px);
-    opacity:0.45;
-    border-radius:2px;
-  }
-  .comp-title{
-    font-family:'Source Serif 4',serif;
-    font-weight:700;
-    font-size:21px;
-    line-height:1.3;
-    margin-bottom:14px;
-    letter-spacing:-0.01em;
-  }
-  .comp-body{
-    font-family:'Source Serif 4',serif;
-    font-size:16.5px;
-    line-height:1.75;
-  }
-  .comp-body p{margin:0 0 14px;}
-  .comp-body p:last-child{margin-bottom:0;}
-
-  .comp-questions{
-    display:flex;
-    flex-direction:column;
-    gap:22px;
-    margin-bottom:24px;
-  }
-  .comp-q{
-    background:var(--ink-soft);
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:18px 20px 20px;
-  }
-  .comp-q-num{
-    font-family:'JetBrains Mono',monospace;
-    font-size:10.5px;
-    color:var(--gold);
-    letter-spacing:0.08em;
-    margin-bottom:8px;
-  }
-  .comp-q-text{
-    font-size:15px;
-    font-weight:600;
-    line-height:1.45;
-    margin-bottom:14px;
-  }
-  .comp-opt{
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
-    padding:11px 14px;
-    border-radius:9px;
-    border:1.5px solid var(--line);
-    background:var(--ink-faint);
-    cursor:pointer;
-    margin-bottom:8px;
-    font-size:13.5px;
-    line-height:1.45;
-    transition:border-color 0.15s ease, background 0.15s ease;
-  }
-  .comp-opt:last-child{margin-bottom:0;}
-  .comp-opt:hover{border-color:var(--gold);}
-  .comp-opt.picked{border-color:var(--gold); background:rgba(201,163,92,0.12);}
-  .comp-opt .radio{
-    width:15px; height:15px;
-    border-radius:50%;
-    border:1.5px solid var(--text-faint);
-    flex-shrink:0;
-    margin-top:1px;
-    position:relative;
-  }
-  .comp-opt.picked .radio{border-color:var(--gold);}
-  .comp-opt.picked .radio::after{
-    content:"";
-    position:absolute;
-    inset:3px;
-    border-radius:50%;
-    background:var(--gold);
-  }
-  .comp-q.graded .comp-opt{cursor:default; pointer-events:none;}
-  .comp-q.graded .comp-opt.correct-answer{border-color:var(--gold); background:rgba(201,163,92,0.16);}
-  .comp-q.graded .comp-opt.wrong-pick{border-color:var(--rust); background:rgba(193,101,74,0.14);}
-  .comp-q.graded .comp-opt.correct-answer .radio{border-color:var(--gold);}
-  .comp-q.graded .comp-opt.correct-answer .radio::after{content:""; position:absolute; inset:3px; border-radius:50%; background:var(--gold);}
-  .comp-q.graded .comp-opt.wrong-pick .radio{border-color:var(--rust);}
-  .comp-q.graded .comp-opt.wrong-pick .radio::after{content:""; position:absolute; inset:3px; border-radius:50%; background:var(--rust);}
-
-  .comp-result-row{
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
-    padding:10px 0;
-    border-bottom:1px solid var(--line);
-    text-align:left;
-  }
-  .comp-result-row:last-child{border-bottom:none;}
-  .comp-result-row .icon{font-size:14px; margin-top:1px; flex-shrink:0;}
-  .comp-result-row .icon.yes{color:var(--gold);}
-  .comp-result-row .icon.no{color:var(--rust);}
-  .comp-result-row .txt{font-size:13px; color:var(--text-dim); line-height:1.5;}
-
   /* Stats panel */
   .stat-grid{
     display:grid;
@@ -743,7 +617,6 @@
   <div class="tabs">
     <button class="tab active" data-tab="quiz">Quiz</button>
     <button class="tab" data-tab="manage">Words <span class="count" id="wordCount">0</span></button>
-    <button class="tab" data-tab="comprehension">Comprehension</button>
     <button class="tab" data-tab="stats">Stats</button>
     <button class="tab" data-tab="setup">Setup</button>
   </div>
@@ -838,84 +711,6 @@
     <div class="word-list" id="wordList"></div>
   </div>
 
-  <!-- COMPREHENSION PANEL -->
-  <div class="panel" id="panel-comprehension">
-
-    <div id="compSetup" class="setup-card" style="text-align:left;">
-      <h2 style="text-align:center;">Reading comprehension</h2>
-      <p style="text-align:center;">Gemini writes a short passage on your chosen topic and level, then quizzes your understanding of it.</p>
-
-      <div class="section-label">Topic</div>
-      <div class="mode-grid" id="topicGrid" style="grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); margin-bottom:22px;">
-        <div class="mode-opt sel" data-topic="Science &amp; Technology"><div class="t">Science &amp; Tech</div></div>
-        <div class="mode-opt" data-topic="Business &amp; Economics"><div class="t">Business</div></div>
-        <div class="mode-opt" data-topic="History &amp; Culture"><div class="t">History &amp; Culture</div></div>
-        <div class="mode-opt" data-topic="Nature &amp; Environment"><div class="t">Nature</div></div>
-        <div class="mode-opt" data-topic="Terms in Global Logistics and Supply Chain"><div class="t">Logistics &amp; Supply Chain</div></div>
-        <div class="mode-opt" data-topic="Health &amp; Psychology"><div class="t">Health &amp; Mind</div></div>
-        <div class="mode-opt" data-topic="Travel &amp; Society"><div class="t">Travel &amp; Society</div></div>
-        <div class="mode-opt" data-topic="General Knowledge of Bangladesh"><div class="t">Bangladesh GK</div></div>
-        <div class="mode-opt" data-topic="Daily Focus &amp; Productivity Hacks"><div class="t">Daily Focus &amp; Productivity</div></div>
-        <div class="mode-opt" data-topic="surprise">
-          <div class="t">Surprise me</div>
-        </div>
-      </div>
-
-      <div class="section-label">Skill level</div>
-      <div class="mode-grid" id="levelGrid" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:8px;">
-        <div class="mode-opt" data-level="beginner">
-          <div class="t">Beginner</div>
-          <div class="d">Simple compound sentences</div>
-        </div>
-        <div class="mode-opt sel" data-level="intermediate">
-          <div class="t">Intermediate</div>
-          <div class="d">Relative & subordinate clauses</div>
-        </div>
-        <div class="mode-opt" data-level="advanced">
-          <div class="t">Advanced</div>
-          <div class="d">Complex syntax, abstract ideas</div>
-        </div>
-      </div>
-      <p style="font-size:12px; color:var(--text-faint); margin-top:0; margin-bottom:24px;">Even at Beginner level, sentences avoid flat "Subject verb object" repetition — every level uses some varied structure.</p>
-
-      <button class="btn btn-gold" id="startCompBtn" style="width:100%; padding:13px;">Generate passage</button>
-    </div>
-
-    <div id="compLoading" class="setup-card" style="display:none;">
-      <h2 id="compLoadingTitle">Writing your passage&hellip;</h2>
-      <p id="compLoadingSub">Gemini is composing a passage and questions tailored to your topic and level.</p>
-    </div>
-
-    <div id="compReading" style="display:none;">
-      <div class="comp-meta">
-        <span id="compMetaTopic">Science &amp; Tech &middot; Upper-Intermediate</span>
-        <button class="btn btn-ghost" id="compAbandonBtn" style="padding:6px 14px; font-size:11.5px;">New passage</button>
-      </div>
-      <div class="comp-passage-card">
-        <div class="comp-title" id="compTitle">Passage title</div>
-        <div class="comp-body" id="compBody"></div>
-      </div>
-
-      <div class="comp-questions" id="compQuestions"></div>
-
-      <button class="btn btn-gold" id="compSubmitBtn" style="width:100%; padding:14px; margin-top:8px;">Check answers</button>
-    </div>
-
-    <div id="compResults" class="setup-card" style="display:none;">
-      <h2 id="compResultsTitle">Results</h2>
-      <p id="compResultsSub"></p>
-      <div id="compResultsBreakdown" style="text-align:left; margin:20px 0;"></div>
-      <button class="btn btn-gold" id="compRestartBtn" style="width:100%; padding:13px;">New passage</button>
-    </div>
-
-    <div id="compError" class="setup-card" style="display:none;">
-      <h2>Couldn't generate that</h2>
-      <p id="compErrorMsg" style="font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.6;"></p>
-      <button class="btn btn-gold" id="compRetryBtn" style="width:100%; padding:13px;">Try again</button>
-    </div>
-
-  </div>
-
   <!-- STATS PANEL -->
   <div class="panel" id="panel-stats">
     <div class="section-label">Vocabulary quiz</div>
@@ -925,14 +720,7 @@
       <div class="stat-box"><div class="v" id="statBest">0</div><div class="l">Best streak</div></div>
     </div>
     <div class="section-label">Per-word performance</div>
-    <div class="word-list" id="statsList" style="margin-bottom:36px;"></div>
-
-    <div class="section-label">Reading comprehension</div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="v" id="compStatPassages">0</div><div class="l">Passages completed</div></div>
-      <div class="stat-box"><div class="v" id="compStatAcc">—</div><div class="l">Question accuracy</div></div>
-      <div class="stat-box"><div class="v" id="compStatQuestions">0</div><div class="l">Questions answered</div></div>
-    </div>
+    <div class="word-list" id="statsList"></div>
   </div>
 
   <!-- SETUP PANEL -->
@@ -1042,7 +830,6 @@ service cloud.firestore {
   let state = {
     words: [], stats: {}, session: null,
     best: { streak: 0, total: 0, correct: 0 },
-    compStats: { totalQuestions: 0, correctQuestions: 0, passagesCompleted: 0 },
     sentenceCache: {}, // { [wordId]: { sentence, generatedAt } }
     settings: { sentenceRefreshDays: 5 },
     updatedAt: 0
@@ -1127,7 +914,6 @@ service cloud.firestore {
     state.words = data.words || [];
     state.stats = data.stats || {};
     state.best = data.best || { streak:0, total:0, correct:0 };
-    state.compStats = data.compStats || { totalQuestions:0, correctQuestions:0, passagesCompleted:0 };
     state.sentenceCache = data.sentenceCache || {};
     state.settings = Object.assign({ sentenceRefreshDays: 5 }, data.settings || {});
     state.updatedAt = data.updatedAt || Date.now();
@@ -1160,7 +946,7 @@ service cloud.firestore {
         state.updatedAt = Date.now();
         await docRef().set({
           words: state.words, stats: state.stats, best: state.best,
-          compStats: state.compStats, sentenceCache: state.sentenceCache,
+          sentenceCache: state.sentenceCache,
           settings: state.settings, updatedAt: state.updatedAt
         });
         setSyncStatus(`Synced · just now`, 'ok');
@@ -1239,7 +1025,6 @@ service cloud.firestore {
         state.words = parsed.words || [];
         state.stats = parsed.stats || {};
         state.best = parsed.best || { streak:0, total:0, correct:0 };
-        state.compStats = parsed.compStats || { totalQuestions:0, correctQuestions:0, passagesCompleted:0 };
         state.sentenceCache = parsed.sentenceCache || {};
         state.settings = Object.assign({ sentenceRefreshDays: 5 }, parsed.settings || {});
         state.updatedAt = parsed.updatedAt || 0;
@@ -1269,7 +1054,7 @@ service cloud.firestore {
       try{
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           words: state.words, stats: state.stats, best: state.best,
-          compStats: state.compStats, sentenceCache: state.sentenceCache,
+          sentenceCache: state.sentenceCache,
           settings: state.settings, updatedAt: state.updatedAt
         }));
       }catch(e){
@@ -1337,8 +1122,7 @@ service cloud.firestore {
 
   // Generic Gemini text call. Tries each model in GEMINI_MODELS until one succeeds.
   // If jsonMode is true, asks Gemini to return raw JSON and parses it for the caller.
-  // temperature (0-2, Gemini default ~1) can be raised for tasks that need more variety
-  // between calls (e.g. comprehension passages on a narrow, repeatedly-used topic).
+  // temperature (0-2, Gemini default ~1) can be raised for tasks that need more variety between calls.
   async function callGemini(promptText, { jsonMode = false, temperature = null } = {}){
     if(!hfToken){
       return { ok:false, error:'no-token' };
@@ -1422,7 +1206,7 @@ service cloud.firestore {
 
   function explainError(err){
     switch(err.error){
-      case 'no-token': return "No Gemini API key set yet — add one in the Sentence AI tab.";
+      case 'no-token': return "No Gemini API key set yet — add one in the Setup tab.";
       case 'auth': return `API key rejected — check it's valid and unrestricted/restricted-to-Gemini. ${err.detail || ''}`;
       case 'rate-limit': return `Free tier rate limit hit (requests/day or requests/minute) — wait a moment and try again. ${err.detail || ''}`;
       case 'network': return `Network request failed: ${err.detail || ''}`;
@@ -1704,240 +1488,6 @@ service cloud.firestore {
   document.getElementById('nextBtn').addEventListener('click', nextCard);
   document.getElementById('restartBtn').addEventListener('click', resetQuizView);
 
-  // ---------- Comprehension ----------
-  let selectedTopic = 'Science & Technology';
-  let selectedLevel = 'intermediate';
-  let currentPassage = null; // { title, body, questions: [{question, options, correctIndex, explanation}] }
-  let userAnswers = []; // index per question, or null
-  // Tracks recently generated passage titles per topic, so we can ask Gemini to
-  // avoid repeating the same angle on narrow/specific topics (e.g. "Bangladesh GK"
-  // kept landing on Liberation War / Sundarbans / Padma Bridge every time).
-  const recentTitlesByTopic = {};
-  const MAX_RECENT_TITLES = 6;
-
-  document.querySelectorAll('#topicGrid .mode-opt').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      document.querySelectorAll('#topicGrid .mode-opt').forEach(o=>o.classList.remove('sel'));
-      el.classList.add('sel');
-      selectedTopic = el.dataset.topic;
-    });
-  });
-  document.querySelectorAll('#levelGrid .mode-opt').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      document.querySelectorAll('#levelGrid .mode-opt').forEach(o=>o.classList.remove('sel'));
-      el.classList.add('sel');
-      selectedLevel = el.dataset.level;
-    });
-  });
-
-  const LEVEL_DESCRIPTIONS = {
-    'beginner': 'beginner-to-low-intermediate (A2-B1) English learner. Use mostly everyday vocabulary, but still write proper compound and complex sentences — join ideas with connectors like "because," "although," "while," "since," or use a relative clause now and then. Do NOT write a string of short flat sentences ("Subject verb object. Subject verb object."); every passage should still read like real, connected prose.',
-    'intermediate': 'intermediate (B1-B2) English learner. Use varied sentence structure — relative clauses, subordinate clauses, a mix of sentence lengths and openings — with a blend of common and moderately advanced vocabulary.',
-    'advanced': 'advanced (C1-C2) English learner. Use complex sentence structures with multiple subordinate clauses, varied sentence openings, occasional inversion or fronting, and precise, less common vocabulary. Layer ideas the way sophisticated academic or literary writing does.'
-  };
-
-  function compTopicLabel(topic){
-    return topic === 'surprise' ? 'a surprising, specific topic of your choosing' : topic;
-  }
-
-  function buildComprehensionPrompt(topic, level){
-    const levelDesc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS['intermediate'];
-    const topicInstruction = topic === 'surprise'
-      ? 'Pick an interesting, specific, non-generic topic yourself (something concrete, not a broad category).'
-      : `The broad topic is: ${topic}. Do not write a generic overview of the whole topic — instead pick ONE specific, narrow angle, fact, event, place, person, process, or idea within it, and build the passage around that. Be creative and avoid the most obvious, textbook-famous choice.`;
-
-    const recent = recentTitlesByTopic[topic] || [];
-    const avoidInstruction = recent.length
-      ? `\n\nYou have already used these angles for this topic recently — pick something genuinely different this time, not a close variation: ${recent.map(t => `"${t}"`).join(', ')}.`
-      : '';
-
-    return `You are creating an English reading comprehension exercise for a ${levelDesc}
-
-${topicInstruction}${avoidInstruction}
-
-Write a short passage (140-200 words) on this specific angle. Important style requirement: avoid simple flat sentences ("Subject verb object." repeated). Use genuinely varied, non-trivial sentence structures appropriate to the level described above — for example subordinate clauses, relative clauses, varied sentence openings, or connectors like "although," "given that," "not only... but also," etc. The passage should read naturally, not like a textbook drill.
-
-Then write exactly 3 multiple-choice comprehension questions about the passage. Each question must have exactly 4 options, exactly one of which is correct. Questions should test real comprehension (inference, main idea, detail, vocabulary-in-context) — not trivial word-matching. Include a one-sentence explanation for why the correct answer is right.
-
-Respond with ONLY valid JSON in exactly this shape, no markdown fences, no commentary:
-{
-  "title": "short title for the passage",
-  "body": "the full passage as a single string with \\n\\n between paragraphs if more than one",
-  "questions": [
-    {
-      "question": "question text",
-      "options": ["option A", "option B", "option C", "option D"],
-      "correctIndex": 0,
-      "explanation": "one sentence explaining why this is correct"
-    }
-  ]
-}`;
-  }
-
-  document.getElementById('startCompBtn').addEventListener('click', generateComprehension);
-  document.getElementById('compRetryBtn').addEventListener('click', generateComprehension);
-  document.getElementById('compAbandonBtn').addEventListener('click', resetComprehensionView);
-  document.getElementById('compRestartBtn').addEventListener('click', resetComprehensionView);
-
-  function resetComprehensionView(){
-    currentPassage = null;
-    userAnswers = [];
-    document.getElementById('compSetup').style.display = 'block';
-    document.getElementById('compLoading').style.display = 'none';
-    document.getElementById('compReading').style.display = 'none';
-    document.getElementById('compResults').style.display = 'none';
-    document.getElementById('compError').style.display = 'none';
-  }
-
-  async function generateComprehension(){
-    if(!hfToken){
-      showToast('Add your Gemini API key in the Sentence AI tab first');
-      return;
-    }
-    document.getElementById('compSetup').style.display = 'none';
-    document.getElementById('compError').style.display = 'none';
-    document.getElementById('compResults').style.display = 'none';
-    document.getElementById('compReading').style.display = 'none';
-    document.getElementById('compLoading').style.display = 'block';
-
-    const prompt = buildComprehensionPrompt(selectedTopic, selectedLevel);
-    const result = await callGemini(prompt, { jsonMode: true, temperature: 1.3 });
-
-    if(!result.ok){
-      document.getElementById('compLoading').style.display = 'none';
-      document.getElementById('compError').style.display = 'block';
-      document.getElementById('compErrorMsg').textContent = explainError(result);
-      return;
-    }
-
-    const data = result.data;
-    if(!data || !data.title || !data.body || !Array.isArray(data.questions) || data.questions.length === 0){
-      document.getElementById('compLoading').style.display = 'none';
-      document.getElementById('compError').style.display = 'block';
-      document.getElementById('compErrorMsg').textContent = 'Response was missing expected fields. Try again.';
-      return;
-    }
-
-    currentPassage = data;
-    userAnswers = new Array(data.questions.length).fill(null);
-
-    if(!recentTitlesByTopic[selectedTopic]) recentTitlesByTopic[selectedTopic] = [];
-    recentTitlesByTopic[selectedTopic].push(data.title);
-    if(recentTitlesByTopic[selectedTopic].length > MAX_RECENT_TITLES){
-      recentTitlesByTopic[selectedTopic].shift();
-    }
-
-    renderComprehensionReading();
-  }
-
-  function escapeHtmlComp(s){
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
-
-  function renderComprehensionReading(){
-    document.getElementById('compLoading').style.display = 'none';
-    document.getElementById('compReading').style.display = 'block';
-
-    const topicLabel = selectedTopic === 'surprise' ? 'Surprise topic' : selectedTopic;
-    const levelLabel = document.querySelector(`#levelGrid .mode-opt[data-level="${selectedLevel}"] .t`)?.textContent || selectedLevel;
-    document.getElementById('compMetaTopic').textContent = `${topicLabel} · ${levelLabel}`;
-
-    document.getElementById('compTitle').textContent = currentPassage.title;
-    const bodyEl = document.getElementById('compBody');
-    const paragraphs = currentPassage.body.split(/\n\n+/).map(p => `<p>${escapeHtmlComp(p)}</p>`).join('');
-    bodyEl.innerHTML = paragraphs;
-
-    const qWrap = document.getElementById('compQuestions');
-    qWrap.innerHTML = '';
-    currentPassage.questions.forEach((q, qi)=>{
-      const qDiv = document.createElement('div');
-      qDiv.className = 'comp-q';
-      qDiv.dataset.qi = qi;
-      qDiv.innerHTML = `
-        <div class="comp-q-num">Question ${qi+1} of ${currentPassage.questions.length}</div>
-        <div class="comp-q-text">${escapeHtmlComp(q.question)}</div>
-        <div class="comp-opts"></div>
-      `;
-      const optsWrap = qDiv.querySelector('.comp-opts');
-      q.options.forEach((opt, oi)=>{
-        const optDiv = document.createElement('div');
-        optDiv.className = 'comp-opt';
-        optDiv.dataset.oi = oi;
-        optDiv.innerHTML = `<span class="radio"></span><span>${escapeHtmlComp(opt)}</span>`;
-        optDiv.addEventListener('click', ()=>{
-          userAnswers[qi] = oi;
-          optsWrap.querySelectorAll('.comp-opt').forEach(o=>o.classList.remove('picked'));
-          optDiv.classList.add('picked');
-        });
-        optsWrap.appendChild(optDiv);
-      });
-      qWrap.appendChild(qDiv);
-    });
-
-    document.getElementById('compSubmitBtn').style.display = 'block';
-    document.getElementById('compSubmitBtn').disabled = false;
-  }
-
-  document.getElementById('compSubmitBtn').addEventListener('click', ()=>{
-    if(userAnswers.some(a => a === null)){
-      showToast('Answer every question before checking');
-      return;
-    }
-    gradeComprehension();
-  });
-
-  function gradeComprehension(){
-    let correctCount = 0;
-    const breakdownRows = [];
-
-    currentPassage.questions.forEach((q, qi)=>{
-      const qDiv = document.querySelector(`.comp-q[data-qi="${qi}"]`);
-      qDiv.classList.add('graded');
-      const picked = userAnswers[qi];
-      const isCorrect = picked === q.correctIndex;
-      if(isCorrect) correctCount++;
-
-      qDiv.querySelectorAll('.comp-opt').forEach(optEl=>{
-        const oi = parseInt(optEl.dataset.oi, 10);
-        if(oi === q.correctIndex) optEl.classList.add('correct-answer');
-        else if(oi === picked) optEl.classList.add('wrong-pick');
-      });
-
-      breakdownRows.push({ isCorrect, explanation: q.explanation, question: q.question });
-    });
-
-    document.getElementById('compSubmitBtn').style.display = 'none';
-
-    state.compStats.totalQuestions += currentPassage.questions.length;
-    state.compStats.correctQuestions += correctCount;
-    state.compStats.passagesCompleted += 1;
-    save();
-    renderStats();
-
-    // Show a results summary card below the questions, but keep passage visible —
-    // scroll user's attention via a brief results banner appended at the end.
-    const pct = Math.round((correctCount / currentPassage.questions.length) * 100);
-    document.getElementById('compResultsTitle').textContent =
-      pct === 100 ? 'Perfect comprehension' : pct >= 75 ? 'Strong understanding' : pct >= 50 ? 'Decent grasp' : 'Worth a re-read';
-    document.getElementById('compResultsSub').textContent = `You got ${correctCount} of ${currentPassage.questions.length} right (${pct}%).`;
-
-    const breakdownEl = document.getElementById('compResultsBreakdown');
-    breakdownEl.innerHTML = '';
-    breakdownRows.forEach((row, i)=>{
-      const r = document.createElement('div');
-      r.className = 'comp-result-row';
-      r.innerHTML = `
-        <span class="icon ${row.isCorrect ? 'yes' : 'no'}">${row.isCorrect ? '&#10003;' : '&#10007;'}</span>
-        <span class="txt"><b style="color:var(--paper);">Q${i+1}.</b> ${escapeHtmlComp(row.explanation || '')}</span>
-      `;
-      breakdownEl.appendChild(r);
-    });
-
-    document.getElementById('compResults').style.display = 'block';
-  }
-
   // ---------- Manage panel ----------
   document.getElementById('addWordBtn').addEventListener('click', async ()=>{
     const wordInput = document.getElementById('newWord');
@@ -1953,7 +1503,7 @@ Respond with ONLY valid JSON in exactly this shape, no markdown fences, no comme
 
     if(!m){
       if(!hfToken){
-        showToast('No meaning entered, and no Gemini API key saved to look one up — add one in the Sentence AI tab, or type the meaning yourself.');
+        showToast('No meaning entered, and no Gemini API key saved to look one up — add one in the Setup tab, or type the meaning yourself.');
         return;
       }
       const originalLabel = addBtn.textContent;
@@ -2137,13 +1687,6 @@ Respond with ONLY valid JSON in exactly this shape, no markdown fences, no comme
         list.appendChild(row);
       });
     }
-
-    const cs = state.compStats || { totalQuestions:0, correctQuestions:0, passagesCompleted:0 };
-    document.getElementById('compStatPassages').textContent = cs.passagesCompleted || 0;
-    document.getElementById('compStatQuestions').textContent = cs.totalQuestions || 0;
-    document.getElementById('compStatAcc').textContent = cs.totalQuestions
-      ? `${Math.round((cs.correctQuestions / cs.totalQuestions) * 100)}%`
-      : '—';
   }
 
   load();
