@@ -819,14 +819,11 @@ service cloud.firestore {
   const FIREBASE_CONFIG = {
     apiKey: "AIzaSyCytf2Ub5ykIoQRJeK8IsSXOf27zS4PIDQ",
     authDomain: "vocabulary-builder-4f067.firebaseapp.com",
-    databaseURL: "https://vocabulary-builder-4f067-default-rtdb.firebaseio.com",
     projectId: "vocabulary-builder-4f067",
     storageBucket: "vocabulary-builder-4f067.firebasestorage.app",
     messagingSenderId: "137973390150",
-    appId: "1:137973390150:web:5990dfff612f11c66b2347",
-    measurementId: "G-NV6RD9GYNC"
+    appId: "1:137973390150:web:5990dfff612f11c66b2347"
   };
-  
   const SYNC_COLLECTION = 'lexicard';
   const SYNC_DOC = 'main';
 
@@ -909,7 +906,8 @@ service cloud.firestore {
       attachRemoteListener();
     }catch(e){
       console.error('Cloud load failed:', e);
-      setSyncStatus('Could not reach cloud — check your connection or config. Working from this device for now.', 'error');
+      const detail = (e && (e.code || e.message)) ? ` (${e.code || e.message})` : '';
+      setSyncStatus(`Could not reach cloud${detail} — working from this device for now.`, 'error');
     }
   }
 
@@ -953,7 +951,7 @@ service cloud.firestore {
 
   let cloudPushTimer = null;
   function pushToCloud(immediate){
-    if(!cloud.ready) return;
+    if(!cloud.ready) return Promise.resolve(false);
     clearTimeout(cloudPushTimer);
     const doPush = async ()=>{
       try{
@@ -964,13 +962,17 @@ service cloud.firestore {
           settings: state.settings, updatedAt: state.updatedAt
         });
         setSyncStatus(`Synced · just now`, 'ok');
+        return true;
       }catch(e){
         console.error('Cloud save failed:', e);
-        setSyncStatus('Could not save to cloud — will retry.', 'error');
+        const detail = (e && (e.code || e.message)) ? ` (${e.code || e.message})` : '';
+        setSyncStatus(`Could not save to cloud${detail} — your local changes are safe, but not yet backed up.`, 'error');
+        return false;
       }
     };
-    if(immediate) doPush();
-    else cloudPushTimer = setTimeout(doPush, 1200);
+    if(immediate) return doPush();
+    cloudPushTimer = setTimeout(doPush, 1200);
+    return Promise.resolve(true); // debounced path is fire-and-forget; nothing waits on this one
   }
 
   // ---------- Storage ----------
@@ -1600,9 +1602,13 @@ service cloud.firestore {
       return;
     }
     setSyncStatus('Syncing…', 'pulse');
-    await loadFromCloud();
-    pushToCloud(true);
-    showToast('Synced');
+    const pushed = await pushToCloud(true);  // send whatever's on this device up first, so nothing typed here gets overwritten
+    if(pushed){
+      await loadFromCloud();                 // safe to reconcile now — our own changes are already saved
+      showToast('Synced');
+    } else {
+      showToast('Could not save to the cloud — check the message in the Setup tab and your Firestore setup');
+    }
   });
 
   document.getElementById('sentenceRefreshDays').addEventListener('change', e=>{
