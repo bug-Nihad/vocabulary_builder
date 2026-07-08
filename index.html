@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1B2430">
+<title>Lexicard — Vocabulary Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2430;
+    --ink-soft:#26303F;
+    --ink-faint:#34404F;
+    --paper:#F2ECE0;
+    --paper-dim:#E6DFCF;
+    --gold:#C9A35C;
+    --gold-bright:#E0BC78;
+    --rust:#C1654A;
+    --rust-soft:#D88B76;
+    --line:rgba(242,236,224,0.14);
+    --text-dim:rgba(242,236,224,0.62);
+    --text-faint:rgba(242,236,224,0.4);
+    --shadow: 0 30px 60px -20px rgba(0,0,0,0.55);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    background:
+      radial-gradient(ellipse 1200px 800px at 50% -10%, #28344400, var(--ink)),
+      var(--ink);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    touch-action:manipulation;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(242,236,224,0.025) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(242,236,224,0.015) 40px);
+    pointer-events:none;
+    z-index:0;
+  }
+  .wrap{
+    position:relative;
+    z-index:1;
+    max-width:760px;
+    margin:0 auto;
+    padding:48px 24px 80px;
+    padding-left:calc(24px + env(safe-area-inset-left));
+    padding-right:calc(24px + env(safe-area-inset-right));
+    padding-bottom:calc(80px + env(safe-area-inset-bottom));
+  }
+
+  /* Header */
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:18px; height:1px;
+    background:var(--gold);
+    display:inline-block;
+  }
+  h1{
+    font-family:'Source Serif 4',serif;
+    font-weight:600;
+    font-size:42px;
+    line-height:1.05;
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--text-dim);
+    font-size:15px;
+    line-height:1.5;
+    max-width:520px;
+    margin:0 0 36px;
+  }
+
+  /* Tabs */
+  .tabs{
+    display:flex;
+    gap:2px;
+    margin-bottom:28px;
+    border-bottom:1px solid var(--line);
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    color:var(--text-faint);
+    background:none;
+    border:none;
+    padding:12px 18px 14px;
+    cursor:pointer;
+    position:relative;
+    transition:color 0.2s ease;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .tab:hover{color:var(--text-dim);}
+  .tab.active{color:var(--paper);}
+  .tab.active::after{
+    content:"";
+    position:absolute;
+    left:18px; right:18px; bottom:-1px;
+    height:2px;
+    background:var(--gold);
+  }
+  .tab .count{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink);
+    background:var(--gold);
+    border-radius:20px;
+    padding:1px 6px;
+    margin-left:7px;
+    font-weight:600;
+  }
+
+  .panel{display:none;}
+  .panel.active{display:block; animation:fadeUp 0.35s ease both;}
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+  /* Cards / sections */
+  .section-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin:0 0 12px;
+  }
+
+  /* Manage panel */
+  .add-row{
+    display:grid;
+    grid-template-columns:1fr 1fr auto;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  input[type=text], textarea{
+    font-family:'Inter',sans-serif;
+    background:var(--ink-soft);
+    border:1px solid var(--line);
+    color:var(--paper);
+    border-radius:8px;
+    padding:11px 13px;
+    font-size:14px;
+    outline:none;
+    transition:border-color 0.2s ease, background 0.2s ease;
+  }
+  input[type=text]:focus, textarea:focus{
+    border-color:var(--gold);
+    background:var(--ink-faint);
+  }
+  input[type=text]::placeholder, textarea::placeholder{color:var(--text-faint);}
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    border-radius:8px;
+    border:1px solid transparent;
+    padding:11px 18px;
+    cursor:pointer;
+    transition:transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+    white-space:nowrap;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-gold{background:var(--gold); color:var(--ink);}
+  .btn-gold:hover{background:var(--gold-bright);}
+  .btn-ghost{background:transparent; border-color:var(--line); color:var(--text-dim);}
+  .btn-ghost:hover{border-color:var(--gold); color:var(--paper);}
+  .btn-rust{background:transparent; border-color:rgba(193,101,74,0.4); color:var(--rust-soft);}
+  .btn-rust:hover{background:rgba(193,101,74,0.12); border-color:var(--rust);}
+  .btn:disabled{opacity:0.4; cursor:not-allowed;}
+
+  .upload-zone{
+    border:1.5px dashed var(--line);
+    border-radius:12px;
+    padding:28px 20px;
+    text-align:center;
+    margin-bottom:28px;
+    transition:border-color 0.2s ease, background 0.2s ease;
+    cursor:pointer;
+  }
+  .upload-zone:hover, .upload-zone.drag{
+    border-color:var(--gold);
+    background:rgba(201,163,92,0.05);
+  }
+  .upload-zone svg{margin-bottom:10px; opacity:0.55;}
+  .upload-zone p{margin:0; font-size:13.5px; color:var(--text-dim);}
+  .upload-zone .fmt{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    margin-top:6px;
+  }
+  #fileInput{display:none;}
+
+  .word-list{
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .word-row{
+    display:grid;
+    grid-template-columns:1fr 1fr auto auto;
+    gap:10px;
+    align-items:center;
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .word-row:last-child{border-bottom:none;}
+  .word-row:nth-child(even){background:rgba(242,236,224,0.02);}
+  .word-row .w{font-weight:600; font-family:'Source Serif 4',serif; font-size:15px;}
+  .word-row .m{color:var(--text-dim);}
+  .word-row .stat-mini{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    color:var(--text-faint);
+    text-align:right;
+  }
+  .word-row .del{
+    background:none; border:none; color:var(--text-faint);
+    cursor:pointer; font-size:15px; padding:2px 6px; border-radius:4px;
+  }
+  .word-row .del:hover{color:var(--rust); background:rgba(193,101,74,0.12);}
+  .empty-state{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--text-faint);
+  }
+  .empty-state .glyph{font-size:28px; margin-bottom:10px; display:block; opacity:0.5;}
+  .empty-state p{font-size:13.5px; margin:0;}
+
+  /* Quiz panel */
+  .quiz-stage{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:20px 0 10px;
+  }
+  .progress-bar{
+    width:100%;
+    height:3px;
+    background:var(--ink-faint);
+    border-radius:3px;
+    overflow:hidden;
+    margin-bottom:34px;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--gold);
+    border-radius:3px;
+    transition:width 0.3s ease;
+  }
+  .session-meta{
+    display:flex;
+    justify-content:space-between;
+    width:100%;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    color:var(--text-faint);
+    margin-bottom:10px;
+    letter-spacing:0.03em;
+  }
+  .session-meta .streak{color:var(--gold);}
+
+  .card{
+    width:100%;
+    max-width:480px;
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:14px;
+    padding:38px 32px 30px;
+    box-shadow:var(--shadow);
+    transform:rotate(-0.6deg);
+    position:relative;
+    margin-bottom:30px;
+  }
+  .card::after{
+    content:"";
+    position:absolute;
+    top:14px; bottom:14px; left:-6px;
+    width:2px;
+    background:repeating-linear-gradient(180deg, var(--rust-soft) 0 6px, transparent 6px 12px);
+    opacity:0.5;
+    border-radius:2px;
+  }
+  .card-dir{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin-bottom:16px;
+  }
+  .card-prompt{
+    font-family:'Source Serif 4',serif;
+    font-weight:600;
+    font-size:34px;
+    line-height:1.15;
+    margin-bottom:4px;
+    letter-spacing:-0.01em;
+  }
+  .card-prompt.def{font-size:21px; font-weight:500; line-height:1.4; font-style:italic;}
+
+  .options{
+    width:100%;
+    max-width:480px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .opt{
+    font-family:'Inter',sans-serif;
+    text-align:left;
+    background:var(--ink-soft);
+    border:1.5px solid var(--line);
+    color:var(--paper);
+    border-radius:10px;
+    padding:15px 18px;
+    font-size:15px;
+    cursor:pointer;
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .opt:hover:not(:disabled){border-color:var(--gold); background:var(--ink-faint);}
+  .opt:active:not(:disabled){transform:scale(0.99);}
+  .opt:disabled{cursor:default;}
+  .opt .letter{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    width:18px;
+  }
+  .opt.correct{
+    background:rgba(201,163,92,0.16);
+    border-color:var(--gold);
+  }
+  .opt.correct .letter{color:var(--gold);}
+  .opt.wrong{
+    background:rgba(193,101,74,0.14);
+    border-color:var(--rust);
+  }
+  .opt.wrong .letter{color:var(--rust);}
+  .opt.dim{opacity:0.45;}
+
+  .feedback{
+    width:100%;
+    max-width:480px;
+    margin-top:18px;
+    opacity:0;
+    transform:translateY(4px);
+    pointer-events:none;
+    transition:opacity 0.25s ease, transform 0.25s ease;
+  }
+  .feedback.show{opacity:1; transform:none; pointer-events:auto;}
+  .feedback-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+  }
+  .feedback-text{font-size:13.5px; color:var(--text-dim);}
+  .feedback-text b{color:var(--paper);}
+
+  .sentence-box{
+    margin-top:16px;
+    background:var(--ink-soft);
+    border:1px solid var(--line);
+    border-left:2px solid var(--gold);
+    border-radius:0 10px 10px 0;
+    padding:14px 16px;
+    opacity:0;
+    transform:translateY(4px);
+    transition:opacity 0.3s ease, transform 0.3s ease;
+  }
+  .sentence-box.show{opacity:1; transform:none;}
+  .sentence-label{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:8px;
+  }
+  .sentence-label .dot{
+    width:5px; height:5px;
+    border-radius:50%;
+    background:var(--gold);
+    display:inline-block;
+  }
+  .sentence-label .dot.pulse{animation:pulse 1.1s ease-in-out infinite;}
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.25;} }
+  .sentence-text{
+    font-family:'Source Serif 4',serif;
+    font-style:italic;
+    font-size:15.5px;
+    line-height:1.55;
+    color:var(--paper);
+  }
+  .sentence-text.dim{color:var(--text-faint); font-style:normal; font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.6; word-break:break-word; white-space:pre-wrap;}
+  .sentence-text mark{
+    background:rgba(201,163,92,0.22);
+    color:var(--gold-bright);
+    font-style:normal;
+    font-weight:600;
+    padding:0 2px;
+    border-radius:3px;
+  }
+
+  .sync-row{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-size:13px;
+    color:var(--text-dim);
+    margin-bottom:4px;
+  }
+  .sync-dot{
+    width:8px; height:8px;
+    border-radius:50%;
+    flex-shrink:0;
+    background:var(--text-faint);
+  }
+  .sync-dot.ok{background:var(--gold); box-shadow:0 0 0 3px rgba(201,163,92,0.18);}
+  .sync-dot.error{background:var(--rust); box-shadow:0 0 0 3px rgba(193,101,74,0.18);}
+  .sync-dot.pulse{animation:pulse 1.1s ease-in-out infinite;}
+  details.setup-steps{
+    border-top:1px solid var(--line);
+    padding-top:16px;
+    margin-top:4px;
+  }
+  details.setup-steps summary{
+    cursor:pointer;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:4px;
+    list-style:none;
+  }
+  details.setup-steps summary::-webkit-details-marker{display:none;}
+  details.setup-steps summary::before{content:"▸ "; }
+  details.setup-steps[open] summary::before{content:"▾ "; }
+  details.setup-steps ol, details.setup-steps ul{
+    font-size:13px; color:var(--text-dim); line-height:1.85; padding-left:20px; margin:12px 0;
+  }
+  details.setup-steps pre{
+    background:var(--ink-faint);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    line-height:1.6;
+    overflow-x:auto;
+    color:var(--text-dim);
+    white-space:pre;
+  }
+  .setup-card{
+    background:var(--ink-soft);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:32px;
+    text-align:center;
+  }
+  .setup-card h2{
+    font-family:'Source Serif 4',serif;
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 8px;
+  }
+  .setup-card p{color:var(--text-dim); font-size:14px; margin:0 0 22px; line-height:1.5;}
+  .mode-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .mode-opt{
+    border:1.5px solid var(--line);
+    background:var(--ink-faint);
+    border-radius:10px;
+    padding:14px;
+    cursor:pointer;
+    text-align:left;
+    transition:border-color 0.15s ease;
+  }
+  .mode-opt.sel{border-color:var(--gold);}
+  .mode-opt .t{font-weight:600; font-size:13.5px; margin-bottom:3px;}
+  .mode-opt .d{font-size:11.5px; color:var(--text-faint);}
+
+  /* Stats panel */
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-bottom:32px;
+  }
+  .stat-box{
+    background:var(--ink-soft);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 16px;
+  }
+  .stat-box .v{
+    font-family:'Source Serif 4',serif;
+    font-size:30px;
+    font-weight:600;
+    color:var(--gold);
+    line-height:1;
+    margin-bottom:6px;
+  }
+  .stat-box .l{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+  }
+  .leaderboard-row{
+    display:grid;
+    grid-template-columns:1fr auto 90px;
+    gap:12px;
+    align-items:center;
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .leaderboard-row:last-child{border-bottom:none;}
+  .leaderboard-row .w{font-family:'Source Serif 4',serif; font-weight:600; font-size:14.5px;}
+  .leaderboard-row .acc{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-faint);}
+  .mini-bar{
+    height:5px;
+    background:var(--ink-faint);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .mini-bar-fill{height:100%; border-radius:3px;}
+
+  .toast{
+    position:fixed;
+    bottom:28px; left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--paper);
+    color:var(--ink);
+    font-size:13.5px;
+    font-weight:600;
+    padding:12px 22px;
+    border-radius:10px;
+    box-shadow:var(--shadow);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.25s ease, transform 0.25s ease;
+    z-index:50;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:560px){
+    h1{font-size:32px;}
+    .add-row{grid-template-columns:1fr;}
+    .word-row{grid-template-columns:1fr auto; row-gap:4px;}
+    .word-row .m{grid-column:1; font-size:12.5px;}
+    .word-row .stat-mini{display:none;}
+    .mode-grid{grid-template-columns:1fr;}
+    .stat-grid{grid-template-columns:1fr 1fr;}
+    .card{padding:30px 22px 24px;}
+    .card-prompt{font-size:27px;}
+  }
+
+  :focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Lexicard</div>
+  <h1>Vocabulary Drill</h1>
+  <p class="sub">Build a word list, then quiz yourself both directions — word to meaning, meaning to word. Every answer is logged to your card index.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="quiz">Quiz</button>
+    <button class="tab" data-tab="manage">Words <span class="count" id="wordCount">0</span></button>
+    <button class="tab" data-tab="stats">Stats</button>
+    <button class="tab" data-tab="setup">Setup</button>
+  </div>
+
+  <!-- QUIZ PANEL -->
+  <div class="panel active" id="panel-quiz">
+    <div id="quizEmpty" class="empty-state" style="display:none;">
+      <span class="glyph">&#9670;</span>
+      <p>No words yet. Add some in the <b style="color:var(--text-dim)">Words</b> tab to start a quiz.</p>
+    </div>
+
+    <div id="quizSetup" class="setup-card" style="display:none;">
+      <h2>Ready to drill</h2>
+      <p id="setupSub">Choose how you want to be quizzed.</p>
+      <div class="mode-grid">
+        <div class="mode-opt sel" data-mode="mixed">
+          <div class="t">Mixed</div>
+          <div class="d">Both directions, shuffled</div>
+        </div>
+        <div class="mode-opt" data-mode="w2m">
+          <div class="t">Word &rarr; Meaning</div>
+          <div class="d">See the word, pick the meaning</div>
+        </div>
+        <div class="mode-opt" data-mode="m2w">
+          <div class="t">Meaning &rarr; Word</div>
+          <div class="d">See the meaning, pick the word</div>
+        </div>
+        <div class="mode-opt" data-mode="weak">
+          <div class="t">Weak words</div>
+          <div class="d">Focus on your lowest accuracy</div>
+        </div>
+      </div>
+      <button class="btn btn-gold" id="startQuizBtn" style="width:100%; padding:13px;">Start session</button>
+    </div>
+
+    <div id="quizStage" class="quiz-stage" style="display:none;">
+      <div class="session-meta">
+        <span id="sessionPos">Card 1 / 10</span>
+        <span class="streak" id="sessionStreak">streak 0</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+
+      <div class="card">
+        <div class="card-dir" id="cardDir">WORD &rarr; MEANING</div>
+        <div class="card-prompt" id="cardPrompt">—</div>
+      </div>
+
+      <div class="options" id="optionsWrap"></div>
+
+      <div class="feedback" id="feedback">
+        <div class="feedback-top">
+          <div class="feedback-text" id="feedbackText"></div>
+          <button class="btn btn-gold" id="nextBtn">Next &rarr;</button>
+        </div>
+        <div class="sentence-box" id="sentenceBox">
+          <div class="sentence-label" style="justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:7px;"><span class="dot"></span><span id="sentenceLabelText">In a sentence</span></span>
+            <button id="regenSentenceBtn" class="btn btn-ghost" style="padding:2px 9px; font-size:10px; letter-spacing:0.05em;" title="Generate a new example, ignoring the cache">New ↻</button>
+          </div>
+          <div class="sentence-text" id="sentenceText">Writing an example&hellip;</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="quizDone" class="setup-card" style="display:none;">
+      <h2 id="doneTitle">Session complete</h2>
+      <p id="doneSub"></p>
+      <button class="btn btn-gold" id="restartBtn" style="width:100%; padding:13px;">New session</button>
+    </div>
+  </div>
+
+  <!-- MANAGE PANEL -->
+  <div class="panel" id="panel-manage">
+    <div class="section-label">Add words</div>
+    <div class="add-row">
+      <input type="text" id="newWord" placeholder="Word (e.g. ephemeral)">
+      <input type="text" id="newMeaning" placeholder="Meaning — leave blank to auto-fill">
+      <button class="btn btn-gold" id="addWordBtn">Add</button>
+    </div>
+
+    <div class="upload-zone" id="dropZone">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <p>Drop a CSV or text file here, or click to browse</p>
+      <p class="fmt">word,meaning — one pair per line</p>
+      <input type="file" id="fileInput" accept=".csv,.txt">
+    </div>
+
+    <div class="section-label" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Your list</span>
+      <button class="btn btn-rust" id="clearAllBtn" style="padding:6px 12px; font-size:11.5px;">Clear all</button>
+    </div>
+    <div class="word-list" id="wordList"></div>
+  </div>
+
+  <!-- STATS PANEL -->
+  <div class="panel" id="panel-stats">
+    <div class="section-label">Vocabulary quiz</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="v" id="statTotal">0</div><div class="l">Questions answered</div></div>
+      <div class="stat-box"><div class="v" id="statAcc">—</div><div class="l">Overall accuracy</div></div>
+      <div class="stat-box"><div class="v" id="statBest">0</div><div class="l">Best streak</div></div>
+    </div>
+    <div class="section-label">Per-word performance</div>
+    <div class="word-list" id="statsList"></div>
+  </div>
+
+  <!-- SETUP PANEL -->
+  <div class="panel" id="panel-setup">
+
+    <div class="setup-card" style="text-align:left; margin-bottom:20px;">
+      <h2 style="text-align:center;">Cloud sync</h2>
+      <p style="text-align:center;">Your word list, quiz progress, and cached example sentences sync through your own free Firebase project, so the same list follows you across every device.</p>
+
+      <div class="sync-row"><span class="sync-dot" id="syncDot"></span><span id="syncStatus">Checking…</span></div>
+      <div style="display:flex; gap:10px; margin-top:16px; margin-bottom:6px;">
+        <button class="btn btn-ghost" id="syncNowBtn" style="flex:1;">Sync now</button>
+      </div>
+
+      <details class="setup-steps">
+        <summary>Not synced yet? Set up your free Firebase project</summary>
+        <ol>
+          <li>Go to <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--gold);">console.firebase.google.com</a>, sign in, and click <b style="color:var(--paper)">Add project</b> (the free Spark plan is enough).</li>
+          <li>Inside the project, open <b style="color:var(--paper)">Build &rarr; Firestore Database</b> and click <b style="color:var(--paper)">Create database</b> (any region, start in "test mode" is fine — we'll lock it down in step 4).</li>
+          <li>Click the <b style="color:var(--paper)">&lt;/&gt; (Web)</b> icon on the project's home screen to register a web app, skip Hosting, and copy the <code style="background:var(--ink-faint); padding:1px 5px; border-radius:4px;">firebaseConfig</code> object it shows you.</li>
+          <li>Open this file's source code, find the <code style="background:var(--ink-faint); padding:1px 5px; border-radius:4px;">FIREBASE_CONFIG</code> block near the top of the <code style="background:var(--ink-faint); padding:1px 5px; border-radius:4px;">&lt;script&gt;</code>, paste your values in, save, and re-deploy/re-upload the file wherever you're hosting it (GitHub Pages, etc). Every device that opens that same URL will now share one Firestore document.</li>
+          <li>Back in Firestore, go to the <b style="color:var(--paper)">Rules</b> tab and replace them with the snippet below, then click <b style="color:var(--paper)">Publish</b>. This restricts access to only the one document this app uses:</li>
+        </ol>
+        <pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /lexicard/main {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+        <p style="font-size:12px; color:var(--text-faint); line-height:1.6; margin-top:10px;">
+          Note on privacy: this rule keeps the data scoped to that single document path, but doesn't require a login — anyone who has your exact Firebase config and knows this app's document path could read or write it. That's fine for a personal project only you deploy, but don't publish your config values somewhere public search engines will index. If you'd rather lock it down with real authentication, ask me and I'll add sign-in.
+        </p>
+      </details>
+    </div>
+
+    <div class="setup-card" style="text-align:left;">
+      <h2 style="text-align:center;">Example sentence AI</h2>
+      <p style="text-align:center;">Sentences are generated with Google's Gemini free tier (no credit card, no spending limit to worry about). Paste a free API key below — it's stored only in this browser.</p>
+
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:8px;">Refresh cached example sentence every</label>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="text" id="sentenceRefreshDays" value="5" style="width:70px; text-align:center;">
+          <span style="font-size:13px; color:var(--text-dim);">days (0 = generate fresh every time)</span>
+        </div>
+        <p style="font-size:12px; color:var(--text-faint); margin:8px 0 0; line-height:1.6;">Each word's example sentence is generated once, cached, and reused across quiz sessions and devices until it's older than this — so you're not spending API calls regenerating the same sentence every attempt.</p>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:8px;">Gemini API key</label>
+        <input type="text" id="hfToken" placeholder="AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" style="width:100%; font-family:'JetBrains Mono',monospace; font-size:13px;">
+      </div>
+
+      <div style="display:flex; gap:10px; margin-bottom:18px;">
+        <button class="btn btn-gold" id="saveTokenBtn" style="flex:1;">Save key</button>
+        <button class="btn btn-ghost" id="testTokenBtn" style="flex:1;">Test it</button>
+      </div>
+
+      <div id="tokenStatus" style="font-size:13px; color:var(--text-dim); margin-bottom:24px; min-height:18px;"></div>
+
+      <div style="background:rgba(201,163,92,0.08); border:1px solid rgba(201,163,92,0.25); border-radius:10px; padding:14px 16px; margin-bottom:24px; font-size:12.5px; color:var(--text-dim); line-height:1.6;">
+        <b style="color:var(--gold);">Using Brave?</b> Shields can sometimes clear storage for local (file://) pages. If your key keeps disappearing, click the Brave Shields icon (lion icon) in the address bar while this page is open and lower shields for this page, or check Settings &rarr; Shields &rarr; "Clear cookies and site data when you close all windows" isn't enabled for local files.
+      </div>
+
+      <div style="border-top:1px solid var(--line); padding-top:20px; text-align:left;">
+        <div class="section-label" style="margin-bottom:10px;">How to get a free key</div>
+        <ol style="font-size:13.5px; color:var(--text-dim); line-height:1.9; padding-left:20px; margin:0;">
+          <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--gold);">aistudio.google.com/apikey</a> and sign in with any Google account</li>
+          <li>Click <b style="color:var(--paper)">Create API key</b> (no credit card needed)</li>
+          <li>Copy the key (starts with <code style="background:var(--ink-faint); padding:1px 5px; border-radius:4px;">AIza</code>) and paste it above</li>
+          <li>Important: Google now requires keys to have a <b style="color:var(--paper)">restriction</b> set. On the key's page, click <b style="color:var(--paper)">Edit</b> &rarr; under API restrictions choose <b style="color:var(--paper)">Restrict key</b> &rarr; select <b style="color:var(--paper)">Generative Language API</b> &rarr; Save. Unrestricted keys will stop working.</li>
+        </ol>
+      </div>
+
+      <div style="font-size:12px; color:var(--text-faint); margin-top:16px; line-height:1.6;">
+        Free tier: 1,500 requests/day, 10/minute on Gemini 2.5 Flash — more than enough for quiz sessions. No spending occurs; once the daily limit is hit, requests pause until it resets.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'words-and-stats';
+  const TOKEN_KEY = 'gemini-api-key';
+
+  // ====== FIREBASE CONFIG ======
+  // Paste your own project's web config here (Firebase console → Project settings →
+  // your web app → "SDK setup and configuration"). See the "Cloud sync" section in the
+  // Setup tab of this app for step-by-step instructions. Leave as-is to run this device only.
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCytf2Ub5ykIoQRJeK8IsSXOf27zS4PIDQ",
+    authDomain: "vocabulary-builder-4f067.firebaseapp.com",
+    databaseURL: "https://vocabulary-builder-4f067-default-rtdb.firebaseio.com",
+    projectId: "vocabulary-builder-4f067",
+    storageBucket: "vocabulary-builder-4f067.firebasestorage.app",
+    messagingSenderId: "137973390150",
+    appId: "1:137973390150:web:5990dfff612f11c66b2347",
+    measurementId: "G-NV6RD9GYNC"
+
+  };
+  const SYNC_COLLECTION = 'lexicard';
+  const SYNC_DOC = 'main';
+
+  let state = {
+    words: [], stats: {}, session: null,
+    best: { streak: 0, total: 0, correct: 0 },
+    sentenceCache: {}, // { [wordId]: { sentence, generatedAt } }
+    settings: { sentenceRefreshDays: 5 },
+    updatedAt: 0
+  };
+  let hfToken = '';
+
+  // ---------- Cloud sync (Firebase Firestore) ----------
+  const cloud = { db: null, ready: false, listening: false };
+  let suppressNextPush = false; // set true right after applying a remote snapshot, so we don't immediately write it straight back
+
+  function firebaseConfigured(){
+    return !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('YOUR_') !== 0);
+  }
+
+  function setSyncStatus(msg, kind){
+    const dot = document.getElementById('syncDot');
+    const txt = document.getElementById('syncStatus');
+    if(txt) txt.textContent = msg;
+    if(dot){
+      dot.classList.remove('ok','error','pulse');
+      if(kind === 'ok') dot.classList.add('ok');
+      else if(kind === 'error') dot.classList.add('error');
+      else if(kind === 'pulse') dot.classList.add('pulse');
+    }
+  }
+
+  function fmtAgo(ts){
+    if(!ts) return 'just now';
+    const s = Math.round((Date.now()-ts)/1000);
+    if(s < 10) return 'just now';
+    if(s < 60) return `${s}s ago`;
+    const m = Math.round(s/60);
+    if(m < 60) return `${m}m ago`;
+    const h = Math.round(m/60);
+    if(h < 24) return `${h}h ago`;
+    const d = Math.round(h/24);
+    return `${d}d ago`;
+  }
+
+  function docRef(){
+    return cloud.db.collection(SYNC_COLLECTION).doc(SYNC_DOC);
+  }
+
+  function initCloudSync(){
+    if(!firebaseConfigured()){
+      setSyncStatus('Not set up — this device only. See setup steps below.', null);
+      return;
+    }
+    try{
+      const app = firebase.initializeApp(FIREBASE_CONFIG);
+      cloud.db = firebase.firestore();
+      try{ cloud.db.enablePersistence({ synchronizeTabs: true }).catch(()=>{}); }catch(e){}
+      cloud.ready = true;
+      setSyncStatus('Connecting…', 'pulse');
+      loadFromCloud();
+    }catch(e){
+      console.error('Firebase init failed:', e);
+      setSyncStatus('Cloud sync failed to start — check FIREBASE_CONFIG values.', 'error');
+    }
+  }
+
+  async function loadFromCloud(){
+    if(!cloud.ready) return;
+    try{
+      const snap = await docRef().get();
+      if(snap.exists){
+        applyRemoteData(snap.data());
+        setSyncStatus(`Synced · ${fmtAgo(state.updatedAt)}`, 'ok');
+      } else {
+        // First time this Firestore project has been used — seed it with whatever's on this device.
+        pushToCloud(true);
+      }
+      attachRemoteListener();
+    }catch(e){
+      console.error('Cloud load failed:', e);
+      setSyncStatus('Could not reach cloud — check your connection or config. Working from this device for now.', 'error');
+    }
+  }
+
+  function applyRemoteData(data){
+    suppressNextPush = true;
+    state.words = data.words || [];
+    state.stats = data.stats || {};
+    state.best = data.best || { streak:0, total:0, correct:0 };
+    state.sentenceCache = data.sentenceCache || {};
+    state.settings = Object.assign({ sentenceRefreshDays: 5 }, data.settings || {});
+    state.updatedAt = data.updatedAt || Date.now();
+    const refreshInput = document.getElementById('sentenceRefreshDays');
+    if(refreshInput) refreshInput.value = state.settings.sentenceRefreshDays;
+    saveLocal();
+    render();
+  }
+
+  function attachRemoteListener(){
+    if(cloud.listening || !cloud.ready) return;
+    cloud.listening = true;
+    docRef().onSnapshot(snap=>{
+      if(!snap.exists) return;
+      if(snap.metadata.hasPendingWrites) return; // this is the echo of our own write, not a real remote change
+      applyRemoteData(snap.data());
+      setSyncStatus(`Updated from another device · ${fmtAgo(state.updatedAt)}`, 'ok');
+    }, err=>{
+      console.error('Cloud listener error:', err);
+      setSyncStatus('Cloud connection lost — retrying in background.', 'error');
+    });
+  }
+
+  let cloudPushTimer = null;
+  function pushToCloud(immediate){
+    if(!cloud.ready) return;
+    clearTimeout(cloudPushTimer);
+    const doPush = async ()=>{
+      try{
+        state.updatedAt = Date.now();
+        await docRef().set({
+          words: state.words, stats: state.stats, best: state.best,
+          sentenceCache: state.sentenceCache,
+          settings: state.settings, updatedAt: state.updatedAt
+        });
+        setSyncStatus(`Synced · just now`, 'ok');
+      }catch(e){
+        console.error('Cloud save failed:', e);
+        setSyncStatus('Could not save to cloud — will retry.', 'error');
+      }
+    };
+    if(immediate) doPush();
+    else cloudPushTimer = setTimeout(doPush, 1200);
+  }
+
+  // ---------- Storage ----------
+  // ---------- Robust token storage (localStorage + IndexedDB fallback) ----------
+  // Some browsers (e.g. Brave Shields, strict privacy modes) can clear or block
+  // localStorage on file:// pages inconsistently. IndexedDB is checked as a backup
+  // so the token survives even if localStorage gets wiped.
+  const IDB_NAME = 'lexicard-db';
+  const IDB_STORE = 'kv';
+  function openIDB(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = ()=>{ req.result.createObjectStore(IDB_STORE); };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  async function idbSet(key, value){
+    try{
+      const db = await openIDB();
+      return new Promise((resolve, reject)=>{
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(value, key);
+        tx.oncomplete = ()=> resolve(true);
+        tx.onerror = ()=> reject(tx.error);
+      });
+    }catch(e){ console.error('IDB set failed:', e); return false; }
+  }
+  async function idbGet(key){
+    try{
+      const db = await openIDB();
+      return new Promise((resolve, reject)=>{
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(key);
+        req.onsuccess = ()=> resolve(req.result || null);
+        req.onerror = ()=> reject(req.error);
+      });
+    }catch(e){ console.error('IDB get failed:', e); return null; }
+  }
+
+  async function persistToken(token){
+    let lsOk = false, idbOk = false;
+    try{ localStorage.setItem(TOKEN_KEY, token); lsOk = true; }catch(e){ console.error('localStorage save failed:', e); }
+    idbOk = await idbSet(TOKEN_KEY, token);
+    return { lsOk, idbOk };
+  }
+  async function retrieveToken(){
+    let fromLS = null, fromIDB = null;
+    try{ fromLS = localStorage.getItem(TOKEN_KEY); }catch(e){ console.error('localStorage read failed:', e); }
+    try{ fromIDB = await idbGet(TOKEN_KEY); }catch(e){ /* already logged */ }
+    // Prefer whichever is present; if both present and differ, prefer localStorage (most recently set wins below anyway).
+    const token = fromLS || fromIDB;
+    // Heal: if one store is missing the token but the other has it, re-sync both.
+    if(token){
+      if(!fromLS){ try{ localStorage.setItem(TOKEN_KEY, token); }catch(e){} }
+      if(!fromIDB){ idbSet(TOKEN_KEY, token); }
+    }
+    return { token, fromLS: !!fromLS, fromIDB: !!fromIDB };
+  }
+
+  async function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        state.words = parsed.words || [];
+        state.stats = parsed.stats || {};
+        state.best = parsed.best || { streak:0, total:0, correct:0 };
+        state.sentenceCache = parsed.sentenceCache || {};
+        state.settings = Object.assign({ sentenceRefreshDays: 5 }, parsed.settings || {});
+        state.updatedAt = parsed.updatedAt || 0;
+      }
+    }catch(e){ console.error('Load failed:', e); }
+
+    const refreshInput = document.getElementById('sentenceRefreshDays');
+    if(refreshInput) refreshInput.value = state.settings.sentenceRefreshDays;
+
+    const { token, fromLS, fromIDB } = await retrieveToken();
+    if(token){
+      hfToken = token;
+      document.getElementById('hfToken').value = hfToken;
+      const source = fromLS && fromIDB ? 'both stores' : fromLS ? 'localStorage' : 'backup storage';
+      setTokenStatus(`Token loaded from ${source} (ends in …${hfToken.slice(-4)})`, 'dim');
+    } else {
+      setTokenStatus('No token saved yet.', 'dim');
+    }
+    render();
+    initCloudSync(); // reconciles with the shared Firestore doc once local render is up, if configured
+  }
+
+  let saveTimer = null;
+  function saveLocal(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          words: state.words, stats: state.stats, best: state.best,
+          sentenceCache: state.sentenceCache,
+          settings: state.settings, updatedAt: state.updatedAt
+        }));
+      }catch(e){
+        console.error('Save failed:', e);
+        showToast('Could not save — your browser may be blocking local storage');
+      }
+    }, 250);
+  }
+  function save(){
+    saveLocal();
+    if(suppressNextPush){ suppressNextPush = false; return; } // this save() call came from applying a remote update — don't echo it straight back
+    pushToCloud(false);
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  // ---------- Word management ----------
+  function idFor(word, meaning){
+    return (word.trim().toLowerCase() + '::' + meaning.trim().toLowerCase());
+  }
+
+  function addWord(word, meaning){
+    word = word.trim(); meaning = meaning.trim();
+    if(!word || !meaning) return false;
+    const key = idFor(word, meaning);
+    if(state.words.some(w => idFor(w.word, w.meaning) === key)) return false;
+    state.words.push({ word, meaning });
+    if(!state.stats[key]) state.stats[key] = { correct:0, total:0 };
+    return true;
+  }
+
+  function parseFileText(text){
+    const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    let added = 0, skipped = 0;
+    for(const line of lines){
+      if(/^word\s*,\s*meaning$/i.test(line)) continue;
+      let parts;
+      if(line.includes('\t')) parts = line.split('\t');
+      else if(line.includes(',')) parts = line.split(/,(.+)/);
+      else if(line.includes(':')) parts = line.split(/:(.+)/);
+      else { skipped++; continue; }
+      const word = (parts[0]||'').replace(/^["']|["']$/g,'').trim();
+      const meaning = (parts[1]||'').replace(/^["']|["']$/g,'').trim();
+      if(word && meaning){
+        if(addWord(word, meaning)) added++; else skipped++;
+      } else skipped++;
+    }
+    return { added, skipped };
+  }
+
+  // ---------- Sentence generation (Google Gemini, free tier) ----------
+  function setTokenStatus(msg, kind){
+    const el = document.getElementById('tokenStatus');
+    if(!el) return;
+    el.textContent = msg;
+    el.style.color = kind === 'error' ? 'var(--rust-soft)' : kind === 'ok' ? 'var(--gold)' : 'var(--text-dim)';
+  }
+
+  const GEMINI_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+
+  // Generic Gemini text call. Tries each model in GEMINI_MODELS until one succeeds.
+  // If jsonMode is true, asks Gemini to return raw JSON and parses it for the caller.
+  // temperature (0-2, Gemini default ~1) can be raised for tasks that need more variety between calls.
+  async function callGemini(promptText, { jsonMode = false, temperature = null } = {}){
+    if(!hfToken){
+      return { ok:false, error:'no-token' };
+    }
+    let lastResult = null;
+    for(const model of GEMINI_MODELS){
+      try{
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const body = {
+          contents: [{ role: "user", parts: [{ text: promptText }] }]
+        };
+        const genConfig = {};
+        if(jsonMode) genConfig.responseMimeType = "application/json";
+        if(temperature !== null) genConfig.temperature = temperature;
+        if(Object.keys(genConfig).length) body.generationConfig = genConfig;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": hfToken
+          },
+          body: JSON.stringify(body)
+        });
+
+        const raw = await response.text();
+
+        if(response.status === 401 || response.status === 403){
+          return { ok:false, error:'auth', detail: raw.slice(0,250) };
+        }
+        if(response.status === 429){
+          lastResult = { ok:false, error:'rate-limit', detail: raw.slice(0,250) };
+          continue; // try next model, a different model may have separate quota
+        }
+        if(!response.ok){
+          lastResult = { ok:false, error:'http', detail: `${response.status} ${raw.slice(0,250)}` };
+          continue;
+        }
+
+        let data;
+        try{ data = JSON.parse(raw); }
+        catch(e){ lastResult = { ok:false, error:'parse', detail: raw.slice(0,250) }; continue; }
+
+        let text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        if(!text){ lastResult = { ok:false, error:'empty', detail: raw.slice(0,300) }; continue; }
+
+        if(jsonMode){
+          try{
+            const cleaned = text.replace(/^```json\s*|^```\s*|```$/g, '').trim();
+            const parsed = JSON.parse(cleaned);
+            return { ok:true, data: parsed, modelUsed: model };
+          }catch(e){
+            lastResult = { ok:false, error:'parse', detail: text.slice(0,300) };
+            continue;
+          }
+        }
+
+        text = text.replace(/^["']|["']$/g, '').trim();
+        return { ok:true, text, modelUsed: model };
+      }catch(e){
+        lastResult = { ok:false, error:'network', detail: e.message };
+      }
+    }
+    return lastResult || { ok:false, error:'unknown' };
+  }
+
+  async function callGeminiSentence(word, meaning){
+    const prompt = `Write exactly one natural, clear example sentence (10-20 words) that uses the word "${word}" (meaning: ${meaning}) so its meaning is obvious from context. Respond with ONLY the sentence — no quotes, no preamble, no explanation.`;
+    const result = await callGemini(prompt);
+    if(!result.ok) return result;
+    return { ok:true, sentence: result.text, modelUsed: result.modelUsed };
+  }
+
+  async function lookupMeaning(word){
+    const prompt = `Give a concise, clear dictionary-style definition of the English word "${word}" — the single most common meaning, in plain everyday language, 4-12 words, lowercase, no leading article like "a" or "the" unless grammatically necessary, no the word itself repeated in the definition. If "${word}" has multiple unrelated common meanings, give the most frequently used one. Respond with ONLY the definition text, nothing else — no quotes, no "means:", no extra commentary.`;
+    const result = await callGemini(prompt);
+    if(!result.ok) return result;
+    const meaning = (result.text || '').trim().replace(/^["']|["']$/g, '');
+    if(!meaning) return { ok:false, error:'empty' };
+    return { ok:true, meaning };
+  }
+
+  function explainError(err){
+    switch(err.error){
+      case 'no-token': return "No Gemini API key set yet — add one in the Setup tab.";
+      case 'auth': return `API key rejected — check it's valid and unrestricted/restricted-to-Gemini. ${err.detail || ''}`;
+      case 'rate-limit': return `Free tier rate limit hit (requests/day or requests/minute) — wait a moment and try again. ${err.detail || ''}`;
+      case 'network': return `Network request failed: ${err.detail || ''}`;
+      case 'parse': return `Got a response that wasn't valid JSON: ${err.detail || ''}`;
+      case 'empty': return `Model returned no text. Raw response: ${err.detail || '(none)'}`;
+      default: return `Request failed (${err.detail || 'unknown error'}).`;
+    }
+  }
+
+  async function generateSentence(word, meaning){
+    return await callGeminiSentence(word, meaning);
+  }
+
+  // ---------- Quiz logic ----------
+  function buildSession(mode){
+    let pool = state.words.slice();
+    if(mode === 'weak'){
+      pool.sort((a,b)=>{
+        const sa = state.stats[idFor(a.word,a.meaning)] || {correct:0,total:0};
+        const sb = state.stats[idFor(b.word,b.meaning)] || {correct:0,total:0};
+        const accA = sa.total ? sa.correct/sa.total : -1;
+        const accB = sb.total ? sb.correct/sb.total : -1;
+        return accA - accB;
+      });
+      pool = pool.slice(0, Math.max(5, Math.min(10, pool.length)));
+    }
+    pool = shuffle(pool.slice());
+    const length = Math.min(pool.length, mode==='weak' ? pool.length : Math.max(5, Math.min(12, pool.length)));
+    const items = pool.slice(0, length).map(w=>{
+      let direction;
+      if(mode === 'w2m') direction = 'w2m';
+      else if(mode === 'm2w') direction = 'm2w';
+      else direction = Math.random() < 0.5 ? 'w2m' : 'm2w';
+      return { word: w.word, meaning: w.meaning, direction };
+    });
+    return { items, idx:0, correctCount:0, streak:0, mode };
+  }
+
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function makeOptions(current){
+    const isW2M = current.direction === 'w2m';
+    const correctVal = isW2M ? current.meaning : current.word;
+    const others = state.words.filter(w => !(w.word===current.word && w.meaning===current.meaning));
+    const distractorPool = shuffle(others.map(w => isW2M ? w.meaning : w.word).filter(v=>v && v!==correctVal));
+    const uniqueDistractors = [...new Set(distractorPool)].slice(0,3);
+    const options = shuffle([correctVal, ...uniqueDistractors]);
+    return { options, correctVal };
+  }
+
+  function renderQuizStage(){
+    const s = state.session;
+    const current = s.items[s.idx];
+    document.getElementById('sessionPos').textContent = `Card ${s.idx+1} / ${s.items.length}`;
+    document.getElementById('sessionStreak').textContent = `streak ${s.streak}`;
+    document.getElementById('progressFill').style.width = `${(s.idx/s.items.length)*100}%`;
+
+    const isW2M = current.direction === 'w2m';
+    document.getElementById('cardDir').textContent = isW2M ? 'WORD \u2192 MEANING' : 'MEANING \u2192 WORD';
+    const promptEl = document.getElementById('cardPrompt');
+    promptEl.textContent = isW2M ? current.word : current.meaning;
+    promptEl.classList.toggle('def', !isW2M);
+
+    const { options, correctVal } = makeOptions(current);
+    current._correctVal = correctVal;
+    const wrap = document.getElementById('optionsWrap');
+    wrap.innerHTML = '';
+    const letters = ['A','B','C','D'];
+    options.forEach((opt, i)=>{
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.innerHTML = `<span class="letter">${letters[i]}</span><span>${escapeHtml(opt)}</span>`;
+      btn.addEventListener('click', ()=>selectAnswer(opt, correctVal, btn));
+      wrap.appendChild(btn);
+    });
+    document.getElementById('feedback').classList.remove('show');
+    document.getElementById('sentenceBox').classList.remove('show');
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function selectAnswer(chosen, correctVal, btnEl){
+    const s = state.session;
+    const current = s.items[s.idx];
+    const key = idFor(current.word, current.meaning);
+    if(!state.stats[key]) state.stats[key] = { correct:0, total:0 };
+    state.stats[key].total++;
+    state.best.total++;
+
+    const correct = chosen === correctVal;
+    if(correct){
+      state.stats[key].correct++;
+      s.correctCount++; s.streak++;
+      state.best.correct++;
+      state.best.streak = Math.max(state.best.streak, s.streak);
+    } else {
+      s.streak = 0;
+    }
+    save();
+
+    const allOpts = document.querySelectorAll('#optionsWrap .opt');
+    allOpts.forEach(o=>{
+      o.disabled = true;
+      const txt = o.querySelector('span:last-child').textContent;
+      if(txt === correctVal) o.classList.add('correct');
+      else if(o === btnEl) o.classList.add('wrong');
+      else o.classList.add('dim');
+    });
+
+    const fb = document.getElementById('feedback');
+    const fbText = document.getElementById('feedbackText');
+    if(correct){
+      fbText.innerHTML = `Correct &mdash; <b>${escapeHtml(correctVal)}</b>`;
+    } else {
+      fbText.innerHTML = `Not quite. Correct answer: <b>${escapeHtml(correctVal)}</b>`;
+    }
+    fb.classList.add('show');
+    document.getElementById('sessionStreak').textContent = `streak ${s.streak}`;
+
+    loadSentenceFor(current.word, current.meaning);
+  }
+
+  function highlightWord(sentence, word){
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`\\b${escaped}\\w*`, 'i');
+    const html = escapeHtml(sentence);
+    const plainMatch = sentence.match(re);
+    if(!plainMatch) return html;
+    const before = escapeHtml(sentence.slice(0, plainMatch.index));
+    const matchTxt = escapeHtml(plainMatch[0]);
+    const after = escapeHtml(sentence.slice(plainMatch.index + plainMatch[0].length));
+    return `${before}<mark>${matchTxt}</mark>${after}`;
+  }
+
+  let sentenceRequestId = 0;
+  let sentenceCardWord = '';   // tracks which word the sentence box currently belongs to, for the manual regenerate button
+  let sentenceCardMeaning = '';
+
+  function sentenceRefreshMs(){
+    const days = Number(state.settings.sentenceRefreshDays);
+    return (isFinite(days) && days > 0) ? days * 86400000 : 0; // 0 means "always regenerate"
+  }
+
+  function setSentenceLabel(txt){
+    const el = document.getElementById('sentenceLabelText');
+    if(el) el.textContent = txt;
+  }
+
+  async function loadSentenceFor(word, meaning, forceFresh){
+    sentenceCardWord = word; sentenceCardMeaning = meaning;
+    const myId = ++sentenceRequestId;
+    const box = document.getElementById('sentenceBox');
+    const textEl = document.getElementById('sentenceText');
+    const dot = document.querySelector('#sentenceBox .dot');
+    box.classList.add('show');
+
+    const key = idFor(word, meaning);
+    const cached = state.sentenceCache[key];
+    const refreshMs = sentenceRefreshMs();
+    const isFresh = cached && refreshMs > 0 && (Date.now() - cached.generatedAt) < refreshMs;
+
+    if(cached && isFresh && !forceFresh){
+      setSentenceLabel('In a sentence · cached');
+      textEl.classList.remove('dim');
+      textEl.innerHTML = highlightWord(cached.sentence, word);
+      return;
+    }
+
+    setSentenceLabel('In a sentence');
+    textEl.textContent = 'Writing an example\u2026';
+    textEl.classList.add('dim');
+    if(dot) dot.classList.add('pulse');
+
+    const result = await generateSentence(word, meaning);
+
+    if(myId !== sentenceRequestId) return; // a newer card has since loaded
+    if(dot) dot.classList.remove('pulse');
+    if(result.ok){
+      state.sentenceCache[key] = { sentence: result.sentence, generatedAt: Date.now() };
+      save();
+      textEl.classList.remove('dim');
+      textEl.innerHTML = highlightWord(result.sentence, word);
+    } else if(cached){
+      // API call failed (e.g. rate limit) — fall back to the stale cached sentence rather than showing an error
+      setSentenceLabel('In a sentence · cached (older)');
+      textEl.classList.remove('dim');
+      textEl.innerHTML = highlightWord(cached.sentence, word);
+    } else {
+      textEl.classList.add('dim');
+      textEl.textContent = explainError(result);
+    }
+  }
+
+  document.getElementById('regenSentenceBtn').addEventListener('click', ()=>{
+    if(sentenceCardWord) loadSentenceFor(sentenceCardWord, sentenceCardMeaning, true);
+  });
+
+  function nextCard(){
+    sentenceRequestId++;
+    const s = state.session;
+    s.idx++;
+    if(s.idx >= s.items.length){
+      finishSession();
+    } else {
+      renderQuizStage();
+    }
+  }
+
+  function finishSession(){
+    const s = state.session;
+    document.getElementById('quizStage').style.display = 'none';
+    document.getElementById('quizDone').style.display = 'block';
+    document.getElementById('progressFill').style.width = '100%';
+    const pct = Math.round((s.correctCount / s.items.length) * 100);
+    document.getElementById('doneTitle').textContent =
+      pct === 100 ? 'Perfect run' : pct >= 75 ? 'Solid session' : pct >= 50 ? 'Session complete' : 'Keep drilling';
+    document.getElementById('doneSub').textContent =
+      `You got ${s.correctCount} of ${s.items.length} right (${pct}%). Stats saved to your index.`;
+    renderManage();
+    renderStats();
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+      if(tab.dataset.tab === 'quiz') resetQuizView();
+      if(tab.dataset.tab === 'stats') renderStats();
+    });
+  });
+
+  function resetQuizView(){
+    document.getElementById('quizStage').style.display = 'none';
+    document.getElementById('quizDone').style.display = 'none';
+    document.getElementById('quizSetup').style.display = 'none';
+    document.getElementById('quizEmpty').style.display = 'none';
+    if(state.words.length === 0){
+      document.getElementById('quizEmpty').style.display = 'block';
+    } else {
+      document.getElementById('quizSetup').style.display = 'block';
+      document.getElementById('setupSub').textContent = `${state.words.length} word${state.words.length===1?'':'s'} in your list. Choose how you want to be quizzed.`;
+    }
+  }
+
+  // ---------- Mode select (quiz tab) ----------
+  let selectedMode = 'mixed';
+  document.querySelectorAll('#quizSetup .mode-opt').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      document.querySelectorAll('#quizSetup .mode-opt').forEach(o=>o.classList.remove('sel'));
+      el.classList.add('sel');
+      selectedMode = el.dataset.mode;
+    });
+  });
+
+  document.getElementById('startQuizBtn').addEventListener('click', ()=>{
+    if(state.words.length < 2){
+      showToast('Add at least 2 words to start a quiz');
+      return;
+    }
+    state.session = buildSession(selectedMode);
+    document.getElementById('quizSetup').style.display = 'none';
+    document.getElementById('quizDone').style.display = 'none';
+    document.getElementById('quizStage').style.display = 'flex';
+    renderQuizStage();
+  });
+  document.getElementById('nextBtn').addEventListener('click', nextCard);
+  document.getElementById('restartBtn').addEventListener('click', resetQuizView);
+
+  // ---------- Manage panel ----------
+  document.getElementById('addWordBtn').addEventListener('click', async ()=>{
+    const wordInput = document.getElementById('newWord');
+    const meaningInput = document.getElementById('newMeaning');
+    const addBtn = document.getElementById('addWordBtn');
+    const w = wordInput.value.trim();
+    let m = meaningInput.value.trim();
+
+    if(!w){
+      showToast('Enter a word first');
+      return;
+    }
+
+    if(!m){
+      if(!hfToken){
+        showToast('No meaning entered, and no Gemini API key saved to look one up — add one in the Setup tab, or type the meaning yourself.');
+        return;
+      }
+      const originalLabel = addBtn.textContent;
+      addBtn.disabled = true;
+      addBtn.textContent = 'Looking up…';
+      const result = await lookupMeaning(w);
+      addBtn.disabled = false;
+      addBtn.textContent = originalLabel;
+
+      if(!result.ok){
+        showToast(`Couldn't look up a meaning for "${w}" — ${explainError(result)}`);
+        return;
+      }
+      m = result.meaning;
+      meaningInput.value = m; // let the user see/edit what was found before it's saved
+    }
+
+    if(addWord(w, m)){
+      wordInput.value='';
+      meaningInput.value='';
+      save(); render();
+      showToast(m ? `Added "${w}" — ${m}` : 'Word added');
+    } else {
+      showToast('That word/meaning pair already exists');
+    }
+  });
+  [document.getElementById('newWord'), document.getElementById('newMeaning')].forEach(inp=>{
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addWordBtn').click(); });
+  });
+
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  dropZone.addEventListener('click', ()=>fileInput.click());
+  dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('drag'); });
+  dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('drag'));
+  dropZone.addEventListener('drop', e=>{
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e=>{
+    if(e.target.files.length) handleFile(e.target.files[0]);
+    fileInput.value = '';
+  });
+  function handleFile(file){
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const { added, skipped } = parseFileText(reader.result);
+      save(); render();
+      showToast(`Added ${added} word${added===1?'':'s'}${skipped?`, skipped ${skipped}`:''}`);
+    };
+    reader.onerror = ()=> showToast('Could not read that file');
+    reader.readAsText(file);
+  }
+
+  document.getElementById('clearAllBtn').addEventListener('click', ()=>{
+    if(state.words.length===0) return;
+    if(confirm('Remove all words, stats, and cached sentences? This cannot be undone, and clears the synced copy on every device too.')){
+      state.words = []; state.stats = {}; state.best = {streak:0,total:0,correct:0}; state.sentenceCache = {};
+      save(); render();
+      showToast('List cleared');
+    }
+  });
+
+  function removeWord(idx){
+    const w = state.words[idx];
+    const key = idFor(w.word,w.meaning);
+    delete state.stats[key];
+    delete state.sentenceCache[key];
+    state.words.splice(idx,1);
+    save(); render();
+  }
+
+  // ---------- Cloud sync UI ----------
+  document.getElementById('syncNowBtn').addEventListener('click', async ()=>{
+    if(!firebaseConfigured()){
+      showToast('Add your Firebase config in the file first — see the setup steps below');
+      return;
+    }
+    setSyncStatus('Syncing…', 'pulse');
+    await loadFromCloud();
+    pushToCloud(true);
+    showToast('Synced');
+  });
+
+  document.getElementById('sentenceRefreshDays').addEventListener('change', e=>{
+    const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+    e.target.value = val;
+    state.settings.sentenceRefreshDays = val;
+    save();
+    showToast(val === 0 ? 'Example sentences will always regenerate' : `Example sentences refresh every ${val} day${val===1?'':'s'}`);
+  });
+
+  // ---------- Token setup ----------
+  document.getElementById('saveTokenBtn').addEventListener('click', async ()=>{
+    const val = document.getElementById('hfToken').value.trim();
+    if(!val){ setTokenStatus('Enter a token first.', 'error'); return; }
+    hfToken = val;
+    const { lsOk, idbOk } = await persistToken(hfToken);
+    if(lsOk || idbOk){
+      const where = lsOk && idbOk ? 'localStorage + backup storage' : lsOk ? 'localStorage only (backup storage unavailable)' : 'backup storage only (localStorage blocked)';
+      setTokenStatus(`Token saved (${where}).`, 'ok');
+      showToast('Token saved');
+    } else {
+      setTokenStatus('Could not save token in this browser — both storage methods failed. Brave Shields or private mode may be blocking storage for local files.', 'error');
+    }
+  });
+
+  document.getElementById('testTokenBtn').addEventListener('click', async ()=>{
+    const val = document.getElementById('hfToken').value.trim();
+    if(!val){ setTokenStatus('Enter a token first.', 'error'); return; }
+    hfToken = val;
+    setTokenStatus('Testing\u2026', 'dim');
+    const result = await callGeminiSentence('benevolent', 'well meaning and kindly');
+    if(result.ok){
+      setTokenStatus(`Working via ${result.modelUsed} \u2014 sample: "${result.sentence}"`, 'ok');
+    } else {
+      setTokenStatus(explainError(result), 'error');
+    }
+  });
+
+  // ---------- Render ----------
+  function render(){
+    document.getElementById('wordCount').textContent = state.words.length;
+    renderWordList();
+    resetQuizView();
+    renderStats();
+  }
+
+  function renderWordList(){
+    const list = document.getElementById('wordList');
+    if(state.words.length === 0){
+      list.innerHTML = `<div class="empty-state"><span class="glyph">&#9670;</span><p>No words yet. Add one above or upload a file.</p></div>`;
+      return;
+    }
+    list.innerHTML = '';
+    state.words.forEach((w, i)=>{
+      const stat = state.stats[idFor(w.word,w.meaning)] || {correct:0,total:0};
+      const accTxt = stat.total ? `${Math.round((stat.correct/stat.total)*100)}%` : '—';
+      const row = document.createElement('div');
+      row.className = 'word-row';
+      row.innerHTML = `
+        <span class="w">${escapeHtml(w.word)}</span>
+        <span class="m">${escapeHtml(w.meaning)}</span>
+        <span class="stat-mini">${accTxt}${stat.total?` &middot; ${stat.total}x`:''}</span>
+        <button class="del" title="Remove">&times;</button>`;
+      row.querySelector('.del').addEventListener('click', ()=>removeWord(i));
+      list.appendChild(row);
+    });
+  }
+
+  function renderStats(){
+    const total = state.best.total || 0;
+    const correct = state.best.correct || 0;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statAcc').textContent = total ? `${Math.round((correct/total)*100)}%` : '—';
+    document.getElementById('statBest').textContent = state.best.streak || 0;
+
+    const list = document.getElementById('statsList');
+    const withStats = state.words
+      .map(w=>({ w, s: state.stats[idFor(w.word,w.meaning)] || {correct:0,total:0} }))
+      .filter(x=>x.s.total > 0)
+      .sort((a,b)=> (a.s.correct/a.s.total) - (b.s.correct/b.s.total));
+
+    if(withStats.length === 0){
+      list.innerHTML = `<div class="empty-state"><span class="glyph">&#9670;</span><p>Run a quiz session to see per-word stats here.</p></div>`;
+    } else {
+      list.innerHTML = '';
+      withStats.forEach(({w,s})=>{
+        const pct = Math.round((s.correct/s.total)*100);
+        const color = pct >= 80 ? 'var(--gold)' : pct >= 50 ? 'var(--gold-bright)' : 'var(--rust)';
+        const row = document.createElement('div');
+        row.className = 'leaderboard-row';
+        row.innerHTML = `
+          <div>
+            <div class="w">${escapeHtml(w.word)}</div>
+            <div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%; background:${color};"></div></div>
+          </div>
+          <div class="acc">${s.correct}/${s.total}</div>
+          <div class="acc" style="text-align:right; color:${color};">${pct}%</div>`;
+        list.appendChild(row);
+      });
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
